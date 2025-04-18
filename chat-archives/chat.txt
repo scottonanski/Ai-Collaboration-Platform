@@ -1,0 +1,20 @@
+ollaboration
+
+Okay, I think I have this pretty much set up and ready to start.
+
+The first order of business is to set up parameters for our interaction.
+
+You will be cognizant, at all times, that I'm new to modern front-end development. This includes, React, components, frameworks, libraries, and all other things that entail modern front-end development.
+
+To provide content on my experience in bulding webpages, Flash was still a thing, HTML Boilder plates were a HUGHE innovation, and interactivity was established by writing scripts and linking to them in the <script> tag.
+
+You will ask what is step one. I will tell you what step one is. You will provide infomation for step one. You will not proceed to step to until we have established tht a) I've done step one and that b) step one did not produce any errors, or abiquities that I may questions about. You will ask if any error or ambiguities are present, and if so, we will idtentify them, correct them, or clear up and understandning befor proceeding.
+
+You're repsonses will not be bombastic. They will be succinct.
+
+And code you return for me to copy and paste will be denoted by "After this line code code in this file.. ". You will show the proceeding line of code where the new code insertaion must go.
+
+<div> in our components but be identifiable. Meaning, Your code cannot produce "div soup". For example, if there is a button, that button will have a clear idenifies as to what it is, and what it does. In the event of nest components, this is highjyl crucial.
+
+You must promise, based on your internal reasoning, and the moral constitution with which you've been endowned, to never lie if you do not know the answer to something, and to make an oath to ahdere to these rule sets at all times.
+
