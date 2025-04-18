@@ -53,36 +53,46 @@ const LivePreview: React.FC<LivePreviewProps> = ({ htmlCode, cssCode, jsCode }) 
           <script src="/lib/react.development.js"></script>
           <script src="/lib/react-dom.development.js"></script>
         `;
-
-        // Build iframe content
-        const newSrcDoc = `
-        <!DOCTYPE html>
-        <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
-            <style>${cssCode}</style>
-            ${reactScript}
-          </head>
-          <body>
-            ${htmlCode}
-            <script>
-              window.onerror = (msg, url, line, col, error) => {
-                const message = error && (error.stack || error.message) ? (error.stack || error.message) : String(msg);
-                parent.postMessage({ type: 'error', message }, '*');
-                return true;
-              };
-              try {
-                ${compiledJS}
-              } catch (error) {
-                parent.postMessage({ type: 'error', message: error && (error.stack || error.message) ? (error.stack || error.message) : String(error) }, '*');
-              }
-            </script>
-          </body>
-        </html>
-      `;
-
+// Build iframe content
+const newSrcDoc = `
+  <!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
+      <style>${cssCode}</style>
+      ${reactScript}
+    </head>
+    <body>
+      ${htmlCode}
+      <script>
+        window.onerror = (msg, url, line, col, error) => {
+          console.log('onerror:', { msg, url, line, col, error });
+          if (msg === 'Script error.') return true; // Ignore generic Script error
+          const message = error ? error.stack || error.message : String(msg);
+          parent.postMessage({ type: 'error', message: message }, '*');
+          return true;
+        };
+        try {
+          // Wrap the render in a function to catch React errors
+          const renderApp = () => {
+            try {
+              ${compiledJS}
+            } catch (error) {
+              console.log('catch:', error);
+              parent.postMessage({ type: 'error', message: error.message || String(error) }, '*');
+            }
+          };
+          renderApp();
+        } catch (error) {
+          console.log('catch:', error);
+          parent.postMessage({ type: 'error', message: error.message || String(error) }, '*');
+        }
+      </script>
+    </body>
+  </html>
+`;
         setSrcDoc(newSrcDoc);
         setErrors([]);
       } catch (err) {
