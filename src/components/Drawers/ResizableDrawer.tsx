@@ -30,7 +30,7 @@ const ResizableDrawer: React.FC<DrawerProps> = ({
   const [cssCode] = useState('h1 { color: blue; }');
   const [jsCode] = useState(`
     const App = () => <h1>{undefinedVar.toString()}</h1>;
-    ReactDOM.render(<App />, document.getElementById('root'));
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
   `);
 
   const [drawerWidth, setDrawerWidth] = useState<number>(DEFAULT_WIDTH);

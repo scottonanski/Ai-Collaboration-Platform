@@ -1,4 +1,3 @@
-// LivePreview.tsx
 import React, { useState, useEffect } from 'react';
 import * as esbuild from 'esbuild-wasm';
 import { initializeEsbuild } from '../../utils/esbuild';
@@ -36,13 +35,10 @@ const LivePreview: React.FC<LivePreviewProps> = ({ htmlCode, cssCode, jsCode }) 
     const compileAndRender = async () => {
       console.time('compileAndRender');
       try {
-        // Preprocess JS to remove imports and adjust render calls
+        // Minimal preprocessing: only remove React imports
         const processedJS = jsCode
           .replace(/import\s+React\s+from\s+['"]react['"]\s*;/g, '')
-          .replace(/import\s+\{\s*render\s*\}\s+from\s+['"]react-dom['"]\s*;/g, '')
-          .replace(/import\s+.*?\s+from\s+['"].*?['"]\s*;/g, '') // Remove other imports
-          .replace(/require\s*\(['"].*?['"]\)\s*;/g, '') // Remove require statements
-          .replace(/\brender\(/g, 'ReactDOM.render(');
+          .replace(/import\s+.*?\s+from\s+['"]react-dom['"]\s*;/g, '');
 
         // Compile JSX to JavaScript
         const result = await esbuild.transform(processedJS, {
@@ -54,42 +50,38 @@ const LivePreview: React.FC<LivePreviewProps> = ({ htmlCode, cssCode, jsCode }) 
 
         // Inject React and ReactDOM scripts from public/lib
         const reactScript = `
-        <script src="https://esm.sh/react@19.1.0?bundle" type="module"></script>
-        <script src="https://esm.sh/react-dom@19.1.0?bundle" type="module"></script>
-      `;
+          <script src="/lib/react.development.js"></script>
+          <script src="/lib/react-dom.development.js"></script>
+        `;
 
-// Build iframe content
-const newSrcDoc = `
-  <!DOCTYPE html>
-  <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
-      <style>${cssCode}</style>
-      <script>
-        // Define process to avoid ReferenceError
-        window.process = { env: { NODE_ENV: 'development' } };
-      </script>
-      ${reactScript}
-    </head>
-    <body>
-      ${htmlCode}
-      <script>
-        window.onerror = (msg, url, line, col, error) => {
-          const message = error ? error.message : msg;
-          parent.postMessage({ type: 'error', message }, '*');
-          return true;
-        };
-        try {
-          ${compiledJS}
-        } catch (error) {
-          parent.postMessage({ type: 'error', message: error.message }, '*');
-        }
-      </script>
-    </body>
-  </html>
-`;
+        // Build iframe content
+        const newSrcDoc = `
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
+            <style>${cssCode}</style>
+            ${reactScript}
+          </head>
+          <body>
+            ${htmlCode}
+            <script>
+              window.onerror = (msg, url, line, col, error) => {
+                const message = error && (error.stack || error.message) ? (error.stack || error.message) : String(msg);
+                parent.postMessage({ type: 'error', message }, '*');
+                return true;
+              };
+              try {
+                ${compiledJS}
+              } catch (error) {
+                parent.postMessage({ type: 'error', message: error && (error.stack || error.message) ? (error.stack || error.message) : String(error) }, '*');
+              }
+            </script>
+          </body>
+        </html>
+      `;
 
         setSrcDoc(newSrcDoc);
         setErrors([]);
