@@ -1,4 +1,42 @@
 
+# Project Status Update
+### Overview
+The project has made significant progress, with the Live Preview component now fully functional and several key features completed. Development is ongoing, with some areas requiring minor tweaks and additional logic implementation to reach full functionality.
+Completed Features
+
+### Live Preview:
+
+The Live Preview component is operational, successfully rendering code in real-time.
+
+### Preview Tabs: The Code, Live, and Markdown preview features are complete, though minor adjustments are still needed to polish the experience.
+Decision Tree UI: A decision tree interface with folders for storing pages, stylesheets, and scripts has been implemented. Currently, this is limited to the UI and lacks full functionality.
+
+# Ongoing Work
+
+### Chat Input:
+
+The chat input feature requires some logic refinements to ensure smooth operation and integration with the rest of the system.
+
+# Next Steps
+
+### Preview Tweaks: 
+
+Apply minor adjustments to the Code, Live, and Markdown preview tabs to enhance usability and performance.
+
+
+### Decision Tree Functionality:
+
+Extend the decision tree beyond the UI, enabling it to store and manage pages, stylesheets, and scripts effectively.
+
+### Chat Input Logic: Finalize the logic adjustments for the chat input to ensure it meets project requirements.
+
+# Summary
+
+The project is advancing well, with core features like Live Preview and preview tabs in place. The focus moving forward will be on refining existing components and activating the decision tree's functionality, setting the stage for a robust and user-friendly application.
+
+---
+# Previous Changes
+
 # React 18 Downgrade for LivePreview Component
 
 ## Objective
