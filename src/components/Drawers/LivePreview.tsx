@@ -1,256 +1,175 @@
-import React, { useState, useRef, useEffect } from "react";
-import ChatBubble from "../ChatBubbles/ChatBubbles.tsx";
-import ChatTextAreaInput from "../ChatTextAreaInput/ChatTextAreaInput.tsx";
-import SettingsDrawer from "../Drawers/SettingsDrawer.tsx";
-import { Settings, Folder, EyeIcon, Send, Pause, Play, ArrowDown10, UserCog } from "lucide-react";
-import LLMStatusIndicator from "../LLMStatusIndicator/LLMStatusIndicator.tsx";
-import CollaborationSettings from "../Drawers/CollaborationSettings.tsx";
+// /home/scott/Documents/Projects/Business-Development/Web-Dev/collaboration/src/components/Drawers/LivePreview.tsx
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { initializeEsbuild } from '../../utils/esbuild';
 
-// --- Type definitions and constants ---
-type ChatMessage = {
-  id: number; // Changed back to number to fix TypeScript errors
-  senderName: string;
-  role: "user" | "worker1" | "worker2";
-  message: string;
-  time: string;
-  footerText?: string;
-};
-
-const userBubbleColor = "info";
-const worker1BubbleColor = "warning";
-const worker2BubbleColor = "success";
-
-// Updated initialChatMessages to use numeric IDs
-const initialChatMessages: ChatMessage[] = [
-  { id: 2, senderName: "System User", role: "user", message: "One moment please...", time: "12:46", footerText: "Seen at 12:46" },
-  { id: 1, senderName: "Worker 1", role: "worker1", message: "Sup?", time: "12:45", footerText: "Delivered" },
-  { id: 3, senderName: "Worker 2", role: "worker2", message: "Not much. Just waiting on the user...", time: "12:47" },
-];
-// --- End of definitions ---
-
-interface ChatInterfaceProps {
-  folderDrawerId: string;
-  previewDrawerId: string;
+interface LivePreviewProps {
+  htmlCode: string;
+  cssCode: string;
+  jsCode: string;
+  isResizing?: boolean;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({
-  folderDrawerId,
-  previewDrawerId,
+const LivePreview: React.FC<LivePreviewProps> = ({
+  htmlCode,
+  cssCode,
+  jsCode,
+  isResizing = false
 }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>(initialChatMessages);
-  const [inputValue, setInputValue] = useState("");
-  const [isPaused, setIsPaused] = useState(false);
-  const [isFeedbackActive, setIsFeedbackActive] = useState(false);
-  const feedbackTimeoutRef = useRef<number | null>(null);
+  const [srcDoc, setSrcDoc] = useState<string>('');
+  const [errors, setErrors] = useState<string[]>([]);
+  const [isEsbuildInitialized, setIsEsbuildInitialized] = useState(false);
+  const esbuildInitialized = useRef(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // --- Helper functions ---
-  const getBubbleColor = (role: ChatMessage["role"]): string => {
-    switch (role) {
-      case "user": return userBubbleColor;
-      case "worker1": return worker1BubbleColor;
-      case "worker2": return worker2BubbleColor;
-      default: return '';
-    }
-  };
-
-  const getAvatarIcon = (role: ChatMessage["role"]) => {
-    const iconSize = 18;
-    switch (role) {
-      case "user": return <UserCog size={iconSize} />;
-      case "worker1": return <ArrowDown10 size={iconSize} />;
-      case "worker2": return <ArrowDown10 size={iconSize} />;
-      default: return null;
-    }
-  };
-
-  // --- Action Handlers ---
-  const handlePause = () => {
-    console.log("Pausing...");
-    setIsPaused(true);
-    setInputValue(""); // Clear input field when pausing
-    // TODO: Signal AI workers to pause
-  };
-
-  const handleResume = () => {
-    console.log("Resuming...");
-    setIsPaused(false);
-    setInputValue(""); // Clear input
-    // TODO: Signal AI workers to resume
-  };
-
-  const handleSendMessage = () => {
-    const trimmedInput = inputValue.trim();
-    if (!trimmedInput) return;
-
-    const newMessage: ChatMessage = {
-      id: messages.length + 1, // Use numeric ID
-      senderName: "User",
-      role: "user",
-      message: trimmedInput,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-
-    if (isPaused) {
-      // Handle interjection
-      setMessages((prevMessages) => [newMessage, ...prevMessages]);
-      setInputValue("Interjection submitted to the collaboration");
-      setIsFeedbackActive(true);
-      setTimeout(() => {
-        setInputValue("");
-        setIsFeedbackActive(false);
-      }, 4000);
-      setIsPaused(false); // Resume after interjection
-      // TODO: Signal AI workers to resume with interjection
-    } else {
-      // Normal message
-      setMessages((prevMessages) => [newMessage, ...prevMessages]);
-      setInputValue("");
-      // TODO: Signal AI workers to process the message
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  const settingsTrigger = (
-    <button
-      className="btn btn-sm btn-ghost tooltip tooltip-top"
-      data-tip="Settings"
-      aria-label="Open Settings Drawer"
-    >
-      <Settings size={16} />
-    </button>
-  );
-
-  // Cleanup timeout on component unmount
+  // Initialize esbuild-wasm
   useEffect(() => {
-    return () => {
-      if (feedbackTimeoutRef.current) {
-        clearTimeout(feedbackTimeoutRef.current);
-      }
-    };
+    if (!esbuildInitialized.current) {
+      esbuildInitialized.current = true;
+      initializeEsbuild()
+        .then(() => {
+          console.log('esbuild initialized successfully (though may not be used).');
+          setIsEsbuildInitialized(true);
+        })
+        .catch((err) => {
+          console.error('esbuild initialization failed:', err);
+          setErrors((prev) => [...prev, `esbuild initialization failed: ${(err as Error).message}`]);
+          esbuildInitialized.current = false;
+        });
+    }
   }, []);
 
+  // Handle runtime errors from iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      if (event.data?.type === 'error') {
+        setErrors((prevErrors) => {
+          const newError = String(event.data.message || 'Unknown iframe error');
+          return prevErrors.includes(newError) ? prevErrors : [...prevErrors, newError];
+        });
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  // Update srcDoc when code changes
+  const updatePreview = useCallback(() => {
+    console.time('updatePreview');
+    setErrors([]);
+
+    const newHtml = `
+      <div id="fps-container">
+        <p>FPS</p>
+        <span id="fps-value"></span>
+      </div>
+      <canvas class="canvas"></canvas>
+    `;
+
+    const newCss = `
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { height: 100%; overflow: hidden; }
+      .canvas { width: 100%; height: 100%; z-index: 1; display: block; }
+      #fps-container { position: fixed; bottom: 10px; right: 10px; z-index: 1000; background-color: black; color: white; font-family: 'Poppins', sans-serif; font-weight: 700; border-radius: 10px; padding: 10px; text-align: center; pointer-events: none; }
+      #fps-value { font-size: 32px; pointer-events: none; }
+    `;
+
+    const newJs = `
+      try {
+        const canvas = document.querySelector(".canvas");
+        const context = canvas.getContext("2d");
+        const fpsContainer = document.getElementById("fps-value");
+        if (!canvas || !context || !fpsContainer) throw new Error("Required elements not found");
+        let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2, mouseSize = 80;
+        let lastMouseX = mouseX, lastMouseY = mouseY, mouseVelocityX = 0, mouseVelocityY = 0;
+        let trailStart = 0, trailEnd = 0; const trailMax = 40; let lastTime = 0, frameCount = 0;
+        const particleColors = ["#F46036", "#2E294E", "#1B998B", "#E71D36", "#C5D86D"];
+        const liquidTrail = new Array(trailMax).fill(null);
+        function updateMousePosition(e) { lastMouseX = mouseX; lastMouseY = mouseY; mouseX = e.clientX; mouseY = e.clientY; mouseVelocityX = mouseX - lastMouseX; mouseVelocityY = mouseY - lastMouseY; liquidTrail[trailEnd] = { x: mouseX, y: mouseY, size: mouseSize, opacity: 1 }; trailEnd = (trailEnd + 1) % trailMax; if (trailEnd === trailStart) trailStart = (trailStart + 1) % trailMax; }
+        class Particle { constructor(x, y, size, sx, sy, dx, dy, c) { this.x = x; this.y = y; this.size = size; this.speedX = sx; this.speedY = sy; this.directionX = dx; this.directionY = dy; this.friction = 0.98; this.minSpeed = 0.48; this.color = c; } draw() { context.fillStyle = this.color; context.beginPath(); context.arc(this.x, this.y, this.size, 0, Math.PI * 2); context.fill(); } update() { if (this.x <= this.size || this.x >= canvas.width - this.size) { this.directionX *= -1; this.speedX *= this.friction; this.x = Math.max(this.size, Math.min(canvas.width - this.size, this.x)); } if (this.y <= this.size || this.y >= canvas.height - this.size) { this.directionY *= -1; this.speedY *= this.friction; this.y = Math.max(this.size, Math.min(canvas.height - this.size, this.y)); } this.x += this.speedX * this.directionX; this.y += this.speedY * this.directionY; const dx = this.x - mouseX, dy = this.y - mouseY, dist = Math.sqrt(dx * dx + dy * dy); if (dist < this.size + mouseSize) { const fx = (dx / (dist || 1)) * (mouseVelocityX * 0.1), fy = (dy / (dist || 1)) * (mouseVelocityY * 0.1); this.speedX += fx; this.speedY += fy; if (dist < mouseSize + this.size) { const ov = mouseSize + this.size - dist; this.x += (dx / (dist || 1)) * ov; this.y += (dy / (dist || 1)) * ov; } } this.speedX *= this.friction; this.speedY *= this.friction; const sp = Math.sqrt(this.speedX * this.speedX + this.speedY * this.speedY); if (sp < this.minSpeed && sp > 0) { const r = this.minSpeed / sp; this.speedX *= r; this.speedY *= r; } this.draw(); } checkCollision(o) { const dx = this.x - o.x, dy = this.y - o.y, dist = Math.sqrt(dx * dx + dy * dy), sizeSum = this.size + o.size; if (dist < sizeSum && dist > 0) { const ang = Math.atan2(dy, dx), sinA = Math.sin(ang), cosA = Math.cos(ang); const v1X = this.speedX * cosA + this.speedY * sinA, v1Y = this.speedY * cosA - this.speedX * sinA; const v2X = o.speedX * cosA + o.speedY * sinA, v2Y = o.speedY * cosA - o.speedX * sinA; const finalV1X = ((this.size - o.size) * v1X + o.size * 2 * v2X) / (this.size + o.size); const finalV2X = (this.size * 2 * v1X + (o.size - this.size) * v2X) / (this.size + o.size); this.speedX = finalV1X * cosA - v1Y * sinA; this.speedY = v1Y * cosA + finalV1X * sinA; o.speedX = finalV2X * cosA - v2Y * sinA; o.speedY = v2Y * cosA + finalV2X * sinA; const ov = sizeSum - dist + 1; this.x += (dx / dist) * ov * 0.5; this.y += (dy / dist) * ov * 0.5; o.x -= (dx / dist) * ov * 0.5; o.y -= (dy / dist) * ov * 0.5; } } }
+        const particles = []; function initializeParticles() { particles.length = 0; for (let i = 0; i < 600; i++) { const x = Math.random() * canvas.width, y = Math.random() * canvas.height, size = Math.random() * (25 - 1) + 1, sx = (Math.random() * 2 - 1) * 1.0, sy = (Math.random() * 2 - 1) * 1.0, dx = Math.random() > 0.5 ? 1 : -1, dy = Math.random() > 0.5 ? 1 : -1, c = particleColors[Math.floor(Math.random() * particleColors.length)]; particles.push(new Particle(x, y, size, sx, sy, dx, dy, c)); } }
+        function animate() { const now = performance.now(), delta = now - lastTime; frameCount++; if (delta >= 1000) { fpsContainer.innerHTML = frameCount; frameCount = 0; lastTime = now; } context.clearRect(0, 0, canvas.width, canvas.height); context.globalAlpha = 1; let idx = trailStart; while (idx !== trailEnd) { const t = liquidTrail[idx]; if (t) { t.size *= 0.99; context.fillStyle = \`rgba(247, 203, 21, \${t.opacity})\`; context.beginPath(); context.arc(t.x, t.y, t.size, 0, Math.PI * 2); context.fill(); t.opacity *= 0.98; if (t.opacity <= 0.005) liquidTrail[idx] = null; } idx = (idx + 1) % trailMax; } for (let i = 0; i < particles.length; i++) particles[i].update(); checkCollisions(); context.fillStyle = "#F7CB15"; context.beginPath(); context.arc(mouseX, mouseY, mouseSize, 0, Math.PI * 2); context.fill(); requestAnimationFrame(animate); }
+        function checkCollisions() { for (let i = 0; i < particles.length; i++) for (let j = i + 1; j < particles.length; j++) particles[i].checkCollision(particles[j]); }
+        function scatterParticles(e) { console.log("Canvas clicked!"); const cX = e.clientX, cY = e.clientY; for (const p of particles) { const dx = p.x - cX, dy = p.y - cY, dist = Math.sqrt(dx * dx + dy * dy); console.log("Distance:", dist); if (dist < 120) { const ang = Math.random() * Math.PI * 2, f = 25; p.speedX = Math.cos(ang) * f; p.speedY = Math.sin(ang) * f; } } }
+        function canvasResize() { console.log("Resize:", window.innerWidth, "x", window.innerHeight); canvas.width = window.innerWidth; canvas.height = window.innerHeight; canvas.style.backgroundColor = "#05171D"; initializeParticles(); }
+        window.addEventListener("mousemove", updateMousePosition); window.addEventListener("resize", canvasResize); canvas.addEventListener("click", scatterParticles);
+        canvasResize(); animate();
+      } catch (error) { console.error("Script Error:", error); parent.postMessage({ type: 'error', message: 'Script error: ' + (error.message || String(error)) }, '*'); }
+    `;
+
+    const newSrcDoc = `
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>${newCss}</style>
+        </head>
+        <body>
+          ${newHtml}
+          <script>
+            window.onerror = (msg, url, line, col, error) => { console.error('onerror:', { msg, url, line, col, error }); const message = error ? error.stack || error.message : String(msg); parent.postMessage({ type: 'error', message: \`[onerror] \${message}\` }, '*'); return true; };
+            window.addEventListener('unhandledrejection', event => { console.error('unhandledrejection:', event.reason); parent.postMessage({ type: 'error', message: \`[unhandledrejection] \${event.reason?.message || String(event.reason)}\` }, '*'); event.preventDefault(); });
+            ${newJs}
+          </script>
+        </body>
+      </html>
+    `;
+
+    setSrcDoc(newSrcDoc);
+    console.timeEnd('updatePreview');
+
+  }, []); // Keep dependencies empty as code is static
+
+  // Debounce updates
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      updatePreview();
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [updatePreview]);
+
   return (
-    <>
-      <main
-        className="flex flex-col items-center gap-4 m-auto justify-between w-full h-full p-1 bg-base-200"
-        data-component="ChatInterface" aria-label="Chat Interface" role="main"
+    // Add role="region" and aria-label to the main container
+    <div
+      className="mockup-browser border border-base-300 w-full h-full flex flex-col bg-base-200"
+      role="region"
+      aria-label="Live Preview Area"
+      data-component="LivePreview"
+    >
+      <div className="mockup-browser-toolbar">
+        <div className="input border border-base-300">http://localhost:preview</div>
+      </div>
+      {/* Add role="region" and aria-label to the content container */}
+      <div
+        className="flex-grow flex flex-col overflow-hidden p-1"
+        role="region"
+        aria-label="Preview Content"
       >
-        {/* Chat History Section */}
-        <section
-          className="flex flex-col-reverse gap-4 w-full max-w-4xl p-4 border border-dashed border-base-content/30 rounded mb-4 overflow-y-auto flex-grow"
-          aria-label="Chat History" role="log" aria-live="polite"
-        >
-          {messages.map((msg) => (
-            <ChatBubble
-              key={msg.id}
-              fontSize="0.90rem"
-              senderName={msg.senderName}
-              time={msg.time}
-              message={msg.message}
-              avatarIcon={getAvatarIcon(msg.role)}
-              footerText={msg.footerText}
-              isSender={msg.role === "user"}
-              bubbleColor={getBubbleColor(msg.role)}
-            />
-          ))}
-        </section>
-
-        {/* Chat Input Section */}
-        <form
-          id="ChatInputContainer"
-          className="flex flex-col items-center w-full max-w-4xl m-auto justify-center bg-zinc-800 rounded-sm p-4 z-10 flex-none"
-          aria-label="Chat Input Area" role="region"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSendMessage();
-          }}
-        >
-          {/* Text Area Input */}
-          <div
-            id="ChatTextAreaInputContainer"
-            className="flex flex-row w-full mb-2"
-            aria-label="Chat Text Input" role="group"
-          >
-            <ChatTextAreaInput
-              placeholder={isPaused ? "Collaboration Paused: Please interject..." : "Type your message..."}
-              onChange={(value) => !isFeedbackActive && setInputValue(value)}
-              onKeyDown={handleKeyDown}
-              rows={2}
-              value={inputValue}
-              disabled={isFeedbackActive}
-              isPaused={isPaused}
-              ariaControls="chat-send-button"
-            />
+        {errors.length > 0 && (
+          // Optional: Add role="alert" if errors appear dynamically and need immediate attention
+          <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '8px', fontSize: '14px', flexShrink: 0 }} /* role="alert" */ >
+            {errors.map((error, index) => (
+              <p key={index}>Error: {error}</p>
+            ))}
           </div>
-
-          {/* Button Navigation */}
-          <nav
-            id="ChatTextInputButtonContainer"
-            className="flex flex-row items-center justify-between w-full"
-            aria-label="Chat Controls" role="navigation"
-          >
-            {/* Left Buttons */}
-            <div id="chat-settings-buttons" className="flex flex-row gap-2">
-              <label htmlFor={folderDrawerId} className="btn btn-sm btn-ghost drawer-button tooltip tooltip-top" data-tip="Browse Files" aria-label="Open Folder Drawer">
-                <Folder size={16} />
-              </label>
-              <SettingsDrawer trigger={settingsTrigger}>
-                <CollaborationSettings />
-              </SettingsDrawer>
-              <label htmlFor={previewDrawerId} className="btn btn-sm btn-ghost drawer-button tooltip tooltip-top" data-tip="Preview Project" aria-label="Open Preview Drawer">
-                <EyeIcon size={16} />
-              </label>
-            </div>
-
-            {/* LLM Status Indicator */}
-            <div id="llm-model-status-indicator" className="flex flex-row items-center justify-center flex-grow" role="region" aria-label="LLM Model Status">
-              <LLMStatusIndicator status="disconnected" />
-            </div>
-
-            {/* Right Buttons */}
-            <div id="chat-action-buttons" className="flex flex-row gap-2 ml-auto" role="group" aria-label="Chat Actions">
-              <button
-                type="button"
-                className="btn btn-sm btn-ghost tooltip tooltip-top"
-                data-tip="Pause Chat"
-                aria-label="Pause"
-                onClick={handlePause}
-                disabled={isPaused}
-              >
-                <Pause size={16} />
-              </button>
-              <button
-                type="button"
-                className="btn btn-sm btn-ghost tooltip tooltip-top"
-                data-tip="Resume Chat"
-                aria-label="Resume"
-                onClick={handleResume}
-                disabled={!isPaused}
-              >
-                <Play size={16} />
-              </button>
-              <button
-                id="chat-send-button"
-                type="submit"
-                className="btn btn-sm btn-ghost tooltip tooltip-top"
-                data-tip="Send Message"
-                aria-label="Send Message"
-                disabled={!inputValue.trim() || isFeedbackActive}
-              >
-                <Send size={16} />
-              </button>
-            </div>
-          </nav>
-        </form>
-      </main>
-    </>
+        )}
+        <div className="flex-grow relative">
+          <iframe
+            ref={iframeRef}
+            srcDoc={srcDoc}
+            title="Live Preview" // Keep the title attribute
+            sandbox="allow-scripts allow-same-origin"
+            style={{
+              position: 'absolute', top: 0, left: 0, width: '100%',
+              height: '100%', border: 'none',
+              pointerEvents: isResizing ? 'none' : 'auto'
+            }}
+          />
+        </div>
+      </div>
+    </div>
   );
 };
 
-export default ChatInterface;
+export default LivePreview;
