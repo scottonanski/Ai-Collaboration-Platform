@@ -2,7 +2,6 @@
 # Project Status Update
 ### Overview
 The project has made significant progress, with the Live Preview component now fully functional and several key features completed. Development is ongoing, with some areas requiring minor tweaks and additional logic implementation to reach full functionality.
-Completed Features
 
 ### Live Preview:
 
@@ -28,7 +27,9 @@ Apply minor adjustments to the Code, Live, and Markdown preview tabs to enhance 
 
 Extend the decision tree beyond the UI, enabling it to store and manage pages, stylesheets, and scripts effectively.
 
-### Chat Input Logic: Finalize the logic adjustments for the chat input to ensure it meets project requirements.
+### Chat Input Logic:
+
+Finalize the logic adjustments for the chat input to ensure it meets project requirements.
 
 # Summary
 
