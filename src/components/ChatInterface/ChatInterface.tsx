@@ -3,8 +3,9 @@ import ChatBubble from "../ChatBubbles/ChatBubbles.tsx";
 import ChatTextAreaInput from "../ChatTextAreaInput/ChatTextAreaInput.tsx";
 import SettingsDrawer from "../Drawers/SettingsDrawer.tsx";
 import { Settings, Folder, EyeIcon, Send, Pause, Play, ArrowDown10, UserCog } from "lucide-react";
-import LLMStatusIndicator from "../LLMStatusIndicator/LLMStatusIndicator.tsx";
+import LLMStatusIndicator, { LLMStatus } from "../LLMStatusIndicator/LLMStatusIndicator.tsx";
 import CollaborationSettings from "../Drawers/CollaborationSettings.tsx";
+import { checkOllamaConnection } from "../../services/ollamaServices.tsx";
 
 // --- Type definitions and constants ---
 type ChatMessage = {
@@ -39,8 +40,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>(initialChatMessages);
   const [inputValue, setInputValue] = useState("");
   const [isPaused, setIsPaused] = useState(false);
-  const [tempPlaceholder, setTempPlaceholder] = useState<string | undefined>(undefined); // New state for temporary placeholder
+  const [tempPlaceholder, setTempPlaceholder] = useState<string | undefined>(undefined);
+  const [llmStatus, setLlmStatus] = useState<LLMStatus>("disconnected"); // New state for LLM status
   const feedbackTimeoutRef = useRef<number | null>(null);
+
+  // Function to check Ollama connection and update status
+  const updateOllamaStatus = async () => {
+    const status = await checkOllamaConnection();
+    setLlmStatus(status);
+  };
+
+  // Check Ollama connection on mount and periodically
+  useEffect(() => {
+    // Initial check
+    updateOllamaStatus();
+
+    // Periodic check every 10 seconds
+    const intervalId = setInterval(updateOllamaStatus, 10000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(intervalId);
+  }, []);
 
   // --- Helper functions ---
   const getBubbleColor = (role: ChatMessage["role"]): string => {
@@ -66,14 +86,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const handlePause = () => {
     console.log("Pausing...");
     setIsPaused(true);
-    setInputValue(""); // Clear input field when pausing
+    setInputValue("");
     // TODO: Signal AI workers to pause
   };
 
   const handleResume = () => {
     console.log("Resuming...");
     setIsPaused(false);
-    setInputValue(""); // Clear input
+    setInputValue("");
     // TODO: Signal AI workers to resume
   };
 
@@ -83,7 +103,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     if (isPaused) {
       console.log("Send/Enter while paused: Triggering resume with interjection");
-      // Add interjection message
       const newMessage: ChatMessage = {
         id: messages.length + 1,
         senderName: "User",
@@ -92,13 +111,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prevMessages) => [newMessage, ...prevMessages]);
-      // Set temporary placeholder instead of inputValue
       setTempPlaceholder("Interjection submitted to the collaboration");
-      setInputValue(""); // Clear the input immediately
+      setInputValue("");
       feedbackTimeoutRef.current = window.setTimeout(() => {
         setTempPlaceholder(undefined);
         feedbackTimeoutRef.current = null;
-      }, 4000); // Clear placeholder after 4s
+      }, 4000);
       setIsPaused(false);
       // TODO: Signal AI workers to resume with interjection
     } else {
@@ -192,7 +210,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               value={inputValue}
               disabled={false}
               isPaused={isPaused}
-              tempPlaceholder={tempPlaceholder} // Pass the temporary placeholder
+              tempPlaceholder={tempPlaceholder}
               ariaControls="chat-send-button"
             />
           </div>
@@ -218,7 +236,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
             {/* LLM Status Indicator */}
             <div id="llm-model-status-indicator" className="flex flex-row items-center justify-center flex-grow" role="region" aria-label="LLM Model Status">
-              <LLMStatusIndicator status="disconnected" />
+              <LLMStatusIndicator status={llmStatus} /> {/* Update to use dynamic status */}
             </div>
 
             {/* Right Buttons */}

@@ -1,6 +1,6 @@
 // /home/scott/Documents/Projects/Business-Development/Web-Dev/collaboration/src/components/Drawers/LivePreview.tsx
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { initializeEsbuild } from '../../utils/esbuild';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { initializeEsbuild } from "../../utils/esbuild";
 
 interface LivePreviewProps {
   htmlCode: string;
@@ -13,9 +13,9 @@ const LivePreview: React.FC<LivePreviewProps> = ({
   htmlCode,
   cssCode,
   jsCode,
-  isResizing = false
+  isResizing = false,
 }) => {
-  const [srcDoc, setSrcDoc] = useState<string>('');
+  const [srcDoc, setSrcDoc] = useState<string>("");
   const [errors, setErrors] = useState<string[]>([]);
   const [isEsbuildInitialized, setIsEsbuildInitialized] = useState(false);
   const esbuildInitialized = useRef(false);
@@ -27,12 +27,17 @@ const LivePreview: React.FC<LivePreviewProps> = ({
       esbuildInitialized.current = true;
       initializeEsbuild()
         .then(() => {
-          console.log('esbuild initialized successfully (though may not be used).');
+          console.log(
+            "esbuild initialized successfully (though may not be used)."
+          );
           setIsEsbuildInitialized(true);
         })
         .catch((err) => {
-          console.error('esbuild initialization failed:', err);
-          setErrors((prev) => [...prev, `esbuild initialization failed: ${(err as Error).message}`]);
+          console.error("esbuild initialization failed:", err);
+          setErrors((prev) => [
+            ...prev,
+            `esbuild initialization failed: ${(err as Error).message}`,
+          ]);
           esbuildInitialized.current = false;
         });
     }
@@ -42,20 +47,22 @@ const LivePreview: React.FC<LivePreviewProps> = ({
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) return;
-      if (event.data?.type === 'error') {
+      if (event.data?.type === "error") {
         setErrors((prevErrors) => {
-          const newError = String(event.data.message || 'Unknown iframe error');
-          return prevErrors.includes(newError) ? prevErrors : [...prevErrors, newError];
+          const newError = String(event.data.message || "Unknown iframe error");
+          return prevErrors.includes(newError)
+            ? prevErrors
+            : [...prevErrors, newError];
         });
       }
     };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
   }, []);
 
   // Update srcDoc when code changes
   const updatePreview = useCallback(() => {
-    console.time('updatePreview');
+    console.time("updatePreview");
     setErrors([]);
 
     const newHtml = `
@@ -117,8 +124,7 @@ const LivePreview: React.FC<LivePreviewProps> = ({
     `;
 
     setSrcDoc(newSrcDoc);
-    console.timeEnd('updatePreview');
-
+    console.timeEnd("updatePreview");
   }, []); // Keep dependencies empty as code is static
 
   // Debounce updates
@@ -138,7 +144,9 @@ const LivePreview: React.FC<LivePreviewProps> = ({
       data-component="LivePreview"
     >
       <div className="mockup-browser-toolbar">
-        <div className="input border border-base-300">http://localhost:preview</div>
+        <div className="input border border-base-300">
+          http://localhost:preview
+        </div>
       </div>
       {/* Add role="region" and aria-label to the content container */}
       <div
@@ -148,7 +156,15 @@ const LivePreview: React.FC<LivePreviewProps> = ({
       >
         {errors.length > 0 && (
           // Optional: Add role="alert" if errors appear dynamically and need immediate attention
-          <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '8px', fontSize: '14px', flexShrink: 0 }} /* role="alert" */ >
+          <div
+            style={{
+              background: "#fee2e2",
+              color: "#b91c1c",
+              padding: "8px",
+              fontSize: "14px",
+              flexShrink: 0,
+            }} /* role="alert" */
+          >
             {errors.map((error, index) => (
               <p key={index}>Error: {error}</p>
             ))}
@@ -161,9 +177,13 @@ const LivePreview: React.FC<LivePreviewProps> = ({
             title="Live Preview" // Keep the title attribute
             sandbox="allow-scripts allow-same-origin"
             style={{
-              position: 'absolute', top: 0, left: 0, width: '100%',
-              height: '100%', border: 'none',
-              pointerEvents: isResizing ? 'none' : 'auto'
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              border: "none",
+              pointerEvents: isResizing ? "none" : "auto",
             }}
           />
         </div>
