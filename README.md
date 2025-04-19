@@ -1,4 +1,30 @@
+To get started with the project, follow these steps:
 
+Clone the Repository:
+```bash
+git clone https://github.com/scottonanski/collaboration.git
+cd collaboration
+```
+
+Switch to the Feature Branch:
+```bash
+git checkout scott/feature/react-18-downgrade
+```
+
+Install Dependencies:
+```bash
+npm install
+```
+
+Run the Development Server:
+```bash
+npm run dev
+```
+
+This will start the Vite development server, and you can view the app in your browser (typically at http://localhost:5173).
+
+
+---
 # Project Status Update
 ### Overview
 The project has made significant progress, with the Live Preview component now fully functional and several key features completed. Development is ongoing, with some areas requiring minor tweaks and additional logic implementation to reach full functionality.
