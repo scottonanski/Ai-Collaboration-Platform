@@ -1,55 +1,70 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Key } from 'lucide-react';
 
-const CollaborationSettings: React.FC = () => {
-  // State for Worker names
-  const [worker1Name, setWorker1Name] = useState('Worker 1');
-  const [worker2Name, setWorker2Name] = useState('Worker 2');
+interface CollaborationSettingsProps {
+  worker1Name: string;
+  setWorker1Name: React.Dispatch<React.SetStateAction<string>>;
+  worker1Model: string;
+  setWorker1Model: React.Dispatch<React.SetStateAction<string>>;
+  worker2Name: string;
+  setWorker2Name: React.Dispatch<React.SetStateAction<string>>;
+  worker2Model: string;
+  setWorker2Model: React.Dispatch<React.SetStateAction<string>>;
+  availableModels: string[];
+  api1Provider: string;
+  setApi1Provider: React.Dispatch<React.SetStateAction<string>>;
+  api2Provider: string;
+  setApi2Provider: React.Dispatch<React.SetStateAction<string>>;
+  turns: number;
+  setTurns: React.Dispatch<React.SetStateAction<number>>;
+  requestSummary: boolean;
+  setRequestSummary: React.Dispatch<React.SetStateAction<boolean>>;
+  apiKey1: string;
+  setApiKey1: React.Dispatch<React.SetStateAction<string>>;
+  apiKey2: string;
+  setApiKey2: React.Dispatch<React.SetStateAction<string>>;
+  isLoadingModels?: boolean;
+}
 
-  // State for selected models
-  const [worker1Model, setWorker1Model] = useState('');
-  const [worker2Model, setWorker2Model] = useState('');
-
-  // State for selected API providers
-  const [api1Provider, setApi1Provider] = useState('');
-  const [api2Provider, setApi2Provider] = useState('');
-
-  // State for turns and summary
-  const [turns, setTurns] = useState(1);
-  const [requestSummary, setRequestSummary] = useState(false);
-
-  // State for API Keys
-  const [apiKey1, setApiKey1] = useState('');
-  const [apiKey2, setApiKey2] = useState('');
-
-  // State for button feedback
-  const [isAccepted, setIsAccepted] = useState(false);
-
-  // Placeholder for available Ollama models and API providers
-  const availableModels = ['llama3', 'mistral', 'codegemma', 'phi3'];
+const CollaborationSettings: React.FC<CollaborationSettingsProps> = ({
+  worker1Name,
+  setWorker1Name,
+  worker1Model,
+  setWorker1Model,
+  worker2Name,
+  setWorker2Name,
+  worker2Model,
+  setWorker2Model,
+  availableModels,
+  api1Provider,
+  setApi1Provider,
+  api2Provider,
+  setApi2Provider,
+  turns,
+  setTurns,
+  requestSummary,
+  setRequestSummary,
+  apiKey1,
+  setApiKey1,
+  apiKey2,
+  setApiKey2,
+  isLoadingModels = false,
+}) => {
   const apiProviders = ['OpenAI', 'Google', 'Anthropic'];
-
-  // Function to handle additional logic on settings acceptance
-  const onAcceptSettings = () => {
-    // Add any additional logic here if needed (e.g., saving settings to a server)
-  };
 
   return (
     <div className="flex flex-col h-full w-full">
-      {/* Options Container - Scrollable */}
       <div
         className="flex-1 overflow-y-auto pr-2"
         tabIndex={0}
         aria-label="Collaboration Settings Options"
       >
-        {/* --- Section 1: Worker 1 Config --- */}
         <section
           role="region"
           aria-labelledby="worker1-config-heading"
           className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center"
         >
           <h3 id="worker1-config-heading" className="sr-only">Worker 1 Configuration</h3>
-          {/* Worker 1 Name */}
           <div className="form-control">
             <label className="label">
               <span className="text-sm label-text mb-3">Worker 1 Name</span>
@@ -62,18 +77,20 @@ const CollaborationSettings: React.FC = () => {
               aria-label="Worker 1 Name"
             />
           </div>
-          {/* Worker 1 Model Dropdown */}
           <div className="form-control">
             <label className="label">
               <span className="text-sm label-text mb-3">Worker 1 Model</span>
             </label>
             <button
               className="btn btn-sm w-full text-left"
-              popoverTarget="worker1-model-dropdown"
+              popovertarget="worker1-model-dropdown"
               style={{ anchorName: "--worker1-model-anchor" } as React.CSSProperties}
               aria-label={`Select Worker 1 Model, current selection: ${worker1Model || 'None'}`}
+              disabled={isLoadingModels || availableModels.length === 0}
             >
-              {worker1Model || 'Select Model'}
+              {isLoadingModels
+                ? 'Loading models...'
+                : worker1Model || (availableModels.length === 0 ? 'No models available' : 'Select Model')}
             </button>
             <ul
               className="dropdown menu w-52 rounded-box bg-base-100 shadow-sm"
@@ -83,23 +100,31 @@ const CollaborationSettings: React.FC = () => {
               role="menu"
               aria-label="Worker 1 Model Options"
             >
-              {availableModels.map(model => (
-                <li key={`w1-${model}`} role="menuitem">
-                  <a onClick={() => setWorker1Model(model)}>{model}</a>
+              {isLoadingModels ? (
+                <li role="menuitem" className="text-gray-500">
+                  <a>Loading models...</a>
                 </li>
-              ))}
+              ) : availableModels.length === 0 ? (
+                <li role="menuitem" className="text-gray-500">
+                  <a>No models available</a>
+                </li>
+              ) : (
+                availableModels.map((model: string) => (
+                  <li key={`w1-${model}`} role="menuitem">
+                    <a onClick={() => setWorker1Model(model)}>{model}</a>
+                  </li>
+                ))
+              )}
             </ul>
           </div>
         </section>
 
-        {/* --- Section 2: Worker 2 Config --- */}
         <section
           role="region"
           aria-labelledby="worker2-config-heading"
           className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center pb-6"
         >
           <h3 id="worker2-config-heading" className="sr-only">Worker 2 Configuration</h3>
-          {/* Worker 2 Name */}
           <div className="form-control">
             <label className="label">
               <span className="text-sm label-text mb-3">Worker 2 Name</span>
@@ -112,18 +137,20 @@ const CollaborationSettings: React.FC = () => {
               aria-label="Worker 2 Name"
             />
           </div>
-          {/* Worker 2 Model Dropdown */}
           <div className="form-control">
             <label className="label">
               <span className="text-sm label-text mb-3">Worker 2 Model</span>
             </label>
             <button
               className="btn btn-sm w-full text-left"
-              popoverTarget="worker2-model-dropdown"
+              popovertarget="worker2-model-dropdown"
               style={{ anchorName: "--worker2-model-anchor" } as React.CSSProperties}
               aria-label={`Select Worker 2 Model, current selection: ${worker2Model || 'None'}`}
+              disabled={isLoadingModels || availableModels.length === 0}
             >
-              {worker2Model || 'Select Model'}
+              {isLoadingModels
+                ? 'Loading models...'
+                : worker2Model || (availableModels.length === 0 ? 'No models available' : 'Select Model')}
             </button>
             <ul
               className="dropdown menu w-52 rounded-box bg-base-100 shadow-sm"
@@ -133,23 +160,31 @@ const CollaborationSettings: React.FC = () => {
               role="menu"
               aria-label="Worker 2 Model Options"
             >
-              {availableModels.map(model => (
-                <li key={`w2-${model}`} role="menuitem">
-                  <a onClick={() => setWorker2Model(model)}>{model}</a>
+              {isLoadingModels ? (
+                <li role="menuitem" className="text-gray-500">
+                  <a>Loading models...</a>
                 </li>
-              ))}
+              ) : availableModels.length === 0 ? (
+                <li role="menuitem" className="text-gray-500">
+                  <a>No models available</a>
+                </li>
+              ) : (
+                availableModels.map((model: string) => (
+                  <li key={`w2-${model}`} role="menuitem">
+                    <a onClick={() => setWorker2Model(model)}>{model}</a>
+                  </li>
+                ))
+              )}
             </ul>
           </div>
         </section>
 
-        {/* --- Section 3: Turns & Summary --- */}
         <section
           role="region"
           aria-labelledby="turns-summary-heading"
           className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center border-t border-base-content/10 py-6"
         >
           <h3 id="turns-summary-heading" className="sr-only">Turns and Summary Settings</h3>
-          {/* Turns Control */}
           <div className="form-control">
             <label className="label mr-3">
               <span className="text-sm label-text">Turns</span>
@@ -164,7 +199,6 @@ const CollaborationSettings: React.FC = () => {
             />
           </div>
 
-          {/* Summary Checkbox */}
           <div className="form-control">
             <label className="label cursor-pointer gap-3">
               <span className="text-sm label-text">Summary Turn</span>
@@ -179,14 +213,12 @@ const CollaborationSettings: React.FC = () => {
           </div>
         </section>
 
-        {/* --- Section 4: API Keys --- */}
         <section
           role="region"
           aria-labelledby="api-keys-heading"
           className="space-y-4 border-t border-base-content/10 pt-6"
         >
           <h3 id="api-keys-heading" className="sr-only">API Keys Configuration</h3>
-          {/* API Key 1 Input with Provider Dropdown */}
           <div className="form-control w-full mb-8">
             <div className="flex justify-between items-center py-3">
               <label className="label">
@@ -195,7 +227,7 @@ const CollaborationSettings: React.FC = () => {
               <div className="w-52">
                 <button
                   className="btn btn-sm w-full text-left"
-                  popoverTarget="api1-provider-dropdown"
+                  popovertarget="api1-provider-dropdown"
                   style={{ anchorName: "--api1-provider-anchor" } as React.CSSProperties}
                   aria-label={`Select API Provider for API Key 1, current selection: ${api1Provider || 'None'}`}
                 >
@@ -209,7 +241,7 @@ const CollaborationSettings: React.FC = () => {
                   role="menu"
                   aria-label="API Provider Options for API Key 1"
                 >
-                  {apiProviders.map(provider => (
+                  {apiProviders.map((provider: string) => (
                     <li key={`api1-${provider}`} role="menuitem">
                       <a onClick={() => setApi1Provider(provider)}>{provider}</a>
                     </li>
@@ -230,7 +262,6 @@ const CollaborationSettings: React.FC = () => {
             </label>
           </div>
 
-          {/* API Key 2 Input with Provider Dropdown */}
           <div className="form-control w-full">
             <div className="flex justify-between items-center py-3">
               <label className="label">
@@ -239,7 +270,7 @@ const CollaborationSettings: React.FC = () => {
               <div className="w-52">
                 <button
                   className="btn btn-sm w-full text-left"
-                  popoverTarget="api2-provider-dropdown"
+                  popovertarget="api2-provider-dropdown"
                   style={{ anchorName: "--api2-provider-anchor" } as React.CSSProperties}
                   aria-label={`Select API Provider for API Key 2, current selection: ${api2Provider || 'None'}`}
                 >
@@ -253,7 +284,7 @@ const CollaborationSettings: React.FC = () => {
                   role="menu"
                   aria-label="API Provider Options for API Key 2"
                 >
-                  {apiProviders.map(provider => (
+                  {apiProviders.map((provider: string) => (
                     <li key={`api2-${provider}`} role="menuitem">
                       <a onClick={() => setApi2Provider(provider)}>{provider}</a>
                     </li>

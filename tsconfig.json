@@ -3,5 +3,9 @@
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
-  ]
+  ],
+  "compilerOptions": {
+    "types": ["react", "react-dom"],
+    "typeRoots": ["./src/types", "./node_modules/@types"]
+  }
 }
