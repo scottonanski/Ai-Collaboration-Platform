@@ -17,14 +17,14 @@ function App() {
         sidebarItems={folderSidebar}
         triggerContent={null}
       />
-      <ResizableDrawer id={previewDrawerId} triggerContent={null} />
-
       <div className="h-screen">
         <ChatInterface
           folderDrawerId={folderDrawerId}
           previewDrawerId={previewDrawerId}
         />
       </div>
+      <ResizableDrawer id={previewDrawerId} triggerContent={null} />
+
     </>
   );
 }
