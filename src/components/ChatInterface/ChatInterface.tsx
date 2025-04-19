@@ -5,6 +5,7 @@ import ChatTextAreaInput from "../ChatTextAreaInput/ChatTextAreaInput.tsx";
 import SettingsDrawer from "../Drawers/SettingsDrawer.tsx";
 import { Settings, Folder, EyeIcon, Send, Pause, Play, ArrowDown10, UserCog } from "lucide-react";
 import LLMStatusIndicator from "../LLMStatusIndicator/LLMStatusIndicator.tsx";
+import CollaborationSettings from "../Drawers/CollaborationSettings.tsx";
 
 // --- Ensure these are defined OUTSIDE the component function ---
 type ChatMessage = {
@@ -156,19 +157,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
                {/* Settings Drawer Trigger */}
                <SettingsDrawer trigger={settingsTrigger}>
-                 <p>Here you can configure various application settings.</p>
-                 <div className="form-control">
-                   <label className="label cursor-pointer">
-                     <span className="label-text">Enable Dark Mode</span>
-                     <input type="checkbox" className="toggle toggle-primary" defaultChecked />
-                   </label>
-                   <label className="label cursor-pointer mt-4">
-                     <span className="label-text">Notification Level</span>
-                     <select className="select select-bordered select-sm">
-                       <option>All</option> <option>Mentions</option> <option>None</option>
-                     </select>
-                   </label>
-                 </div>
+               <CollaborationSettings />
                </SettingsDrawer>
 
                <label htmlFor={previewDrawerId} className="btn btn-sm btn-ghost drawer-button tooltip tooltip-top" data-tip="Preview Project" aria-label="Open Preview Drawer">
