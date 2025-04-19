@@ -1,10 +1,11 @@
 import React from 'react';
 import DrawerHeader from './DrawerHeaders.tsx';
 import { Folder } from 'lucide-react';
+import FileTree, { FileTreeNodeData } from './FileTree.tsx'; // Assuming FileTree is in the same directory
 
 interface FolderDrawerProps {
   id: string;
-  sidebarItems: string[];
+  // Removed sidebarItems as FileTree handles the structure
   mainContent?: React.ReactNode;
   triggerContent?: React.ReactNode;
   className?: string;
@@ -12,13 +13,29 @@ interface FolderDrawerProps {
   zIndex?: number;
 }
 
+// Corrected placeholder data with unique IDs
+const placeholderTreeData: FileTreeNodeData[] = [
+  { id: 'folder-htdocs', name: 'htdocs', type: 'folder', children: [
+    { id: 'folder-html', name: 'html', type: 'folder', children: [
+      { id: 'file-index-html', name: 'index.html', type: 'file', fileType: 'html' },
+    ]},
+    { id: 'folder-css', name: 'css', type: 'folder', children: [
+      { id: 'file-style-css', name: 'style.css', type: 'file', fileType: 'css' },
+    ]},
+    { id: 'folder-scripts', name: 'scripts', type: 'folder', children: [
+      { id: 'file-app-js', name: 'app.js', type: 'file', fileType: 'js' },
+    ]},
+  ]},
+  // Example of another root item if needed
+  // { id: 'file-readme', name: 'README.md', type: 'file', fileType: 'other' },
+];
+
 const FolderDrawer: React.FC<FolderDrawerProps> = ({
   id = "FolderDrawer",
   mainContent,
   className,
   style,
   zIndex = 100,
-  sidebarItems,
 }) => {
   return (
     <aside
@@ -36,7 +53,7 @@ const FolderDrawer: React.FC<FolderDrawerProps> = ({
         className="drawer-side"
         style={{ zIndex }}
         aria-label="Project Files Sidebar"
-        role="region"
+        role="region" // Using region is okay here for the overall sidebar content area
         data-element="drawer-side"
       >
         <label
@@ -44,18 +61,21 @@ const FolderDrawer: React.FC<FolderDrawerProps> = ({
           aria-label="Close Project Files Sidebar"
           className="drawer-overlay"
         />
+        {/* Changed section classes slightly for better fit */}
         <section
-          className="menu bg-zinc-800 min-h-full w-80 p-4 pt-8"
+          className="bg-zinc-800 text-base-content min-h-full w-80 p-4 pt-8 flex flex-col" // Use flex-col
           aria-label="Project Files List"
           role="region"
           data-element="sidebar-content"
         >
+          {/* Header remains */}
           <DrawerHeader icon={<Folder size={16} color='white' strokeWidth="0.75"/>} title="Project Files"/>
-          <ul>
-            {sidebarItems.map((item, index) => (
-              <li key={index}><a>{item}</a></li>
-            ))}
-          </ul>
+
+          {/* Render the FileTree component here */}
+          <div className="mt-4 flex-grow overflow-y-auto"> {/* Add margin-top, allow growth and scrolling */}
+            <FileTree nodes={placeholderTreeData} /> {/* Use updated data */}
+          </div>
+
         </section>
       </nav>
     </aside>

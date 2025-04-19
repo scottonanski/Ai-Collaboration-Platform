@@ -14,19 +14,19 @@
   --color-base-200: oklch(20% 0 0);
   --color-base-300: oklch(26% 0 0);
   --color-base-content: oklch(97% 0 0);
-  --color-primary: oklch(55% 0.163 48.998);
+  --color-primary:oklch(0.45 0.1 266.29);
   --color-primary-content: oklch(97% 0.014 308.299);
-  --color-secondary: oklch(47% 0.137 46.201);
+  --color-secondary: oklch(0.8 0.1 266.29);
   --color-secondary-content: oklch(96% 0.018 272.314);
   --color-accent: oklch(66% 0.179 58.318);
   --color-accent-content: oklch(100% 0 0);
   --color-neutral: oklch(20% 0 0);
   --color-neutral-content: oklch(98% 0 0);
-  --color-info: oklch(45% 0.085 224.283);
+  --color-info: oklch(0.4 0.1 266.29);
   --color-info-content: oklch(98% 0.019 200.873);
-  --color-success: oklch(44% 0.119 151.328);
+  --color-success: oklch(0.39 0.119 151.328);
   --color-success-content: oklch(98% 0.018 155.826);
-  --color-warning: oklch(76% 0.188 70.08);
+  --color-warning: oklch(0.63 0.1559 70.08);
   --color-warning-content: oklch(98% 0.016 73.684);
   --color-error: oklch(50% 0.213 27.518);
   --color-error-content: oklch(97% 0.013 17.38);
@@ -38,6 +38,7 @@
   --border: 0.5px;
   --depth: 0;
   --noise: 0;
+  --bubble-User: oklch(0.35 0.1 266.29);
 }
 .mockup-code pre span:nth-child(1) {
   margin-left: -1.112rem!important;

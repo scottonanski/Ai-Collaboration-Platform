@@ -1,10 +1,15 @@
-import React, { useRef, useState } from 'react';
-import DrawerHeader from './DrawerHeaders.tsx';
-import { EyeIcon } from 'lucide-react';
-import TabbedGroup, { TabItem } from './TabbedGroup.tsx';
-import { CodeTabIcon, LivePreviewTabIcon, MarkdownTabIcon } from './TabIcons.tsx';
-import CodeSubTabs from './CodeSubTabs.tsx';
-import MockPreviewWindow from './MockPreviewWindow';
+import React, { useRef, useState, useCallback } from "react";
+import DrawerHeader from "./DrawerHeaders.tsx";
+import { EyeIcon } from "lucide-react";
+import TabbedGroup, { TabItem } from "./TabbedGroup.tsx";
+import {
+  CodeTabIcon,
+  LivePreviewTabIcon,
+  MarkdownTabIcon,
+} from "./TabIcons.tsx";
+import CodeSubTabs from "./CodeSubTabs.tsx";
+import LivePreview from "./LivePreview.tsx";
+import MarkdownRenderer from "./MarkdownRenderer.tsx";
 
 interface DrawerProps {
   id: string;
@@ -13,10 +18,35 @@ interface DrawerProps {
   className?: string;
   style?: React.CSSProperties;
   zIndex?: number;
+  markdownContent?: string;
 }
 
 const MIN_WIDTH = 200;
-const DEFAULT_WIDTH = 320;
+const DEFAULT_WIDTH = 800;
+
+const sampleMarkdown = `
+# Project Preview
+
+This tab displays a rendered preview of Markdown content.
+
+## Features
+
+*   Supports **GitHub Flavored Markdown**.
+*   Uses \`react-markdown\`.
+
+\`\`\`javascript
+// Example code block
+function greet(name) {
+  console.log(\`Hello, \${name}!\`);
+}
+\`\`\`
+
+> Blockquote example.
+
+---
+
+Find out more at Example Link.
+`;
 
 const ResizableDrawer: React.FC<DrawerProps> = ({
   id = "ResizableDrawer",
@@ -24,13 +54,33 @@ const ResizableDrawer: React.FC<DrawerProps> = ({
   className,
   style,
   zIndex = 100,
+  markdownContent = sampleMarkdown,
 }) => {
-
   const [htmlCode] = useState('<div id="root"></div>');
-  const [cssCode] = useState('h1 { color: blue; }');
+  const [cssCode] = useState(
+    "body { background-color: #f0f0f0; } h1 { color: purple; }"
+  );
   const [jsCode] = useState(`
-    const App = () => <h1>{undefinedVar.toString()}</h1>;
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    // Example React code for Live Preview
+    const App = () => {
+      const [count, setCount] = React.useState(0);
+      return (
+        <div>
+          <h1>Live Preview Counter</h1>
+          <p>Count: {count}</p>
+          <button onClick={() => setCount(c => c + 1)}>Increment</button>
+        </div>
+      );
+    };
+
+    // Ensure React and ReactDOM are available in the iframe scope
+    if (typeof React !== 'undefined' && typeof ReactDOM !== 'undefined') {
+       const root = ReactDOM.createRoot(document.getElementById("root"));
+       root.render(<App />);
+    } else {
+       console.error('React or ReactDOM not loaded in iframe');
+       document.getElementById('root').innerHTML = 'Error: React/ReactDOM not found.';
+    }
   `);
 
   const [drawerWidth, setDrawerWidth] = useState<number>(DEFAULT_WIDTH);
@@ -38,50 +88,53 @@ const ResizableDrawer: React.FC<DrawerProps> = ({
   const startXRef = useRef<number>(0);
   const startWidthRef = useRef<number>(DEFAULT_WIDTH);
 
-  const onMouseMove = (moveEvent: MouseEvent) => {
-    const newWidth = startWidthRef.current - (moveEvent.clientX - startXRef.current);
+  const onMouseMove = useCallback((moveEvent: MouseEvent) => {
+    const newWidth =
+      startWidthRef.current - (moveEvent.clientX - startXRef.current);
     setDrawerWidth(Math.max(newWidth, MIN_WIDTH));
-  };
+  }, []);
 
-  const onMouseUp = () => {
+  const onMouseUp = useCallback(() => {
     window.removeEventListener("mousemove", onMouseMove);
     window.removeEventListener("mouseup", onMouseUp);
-  };
+  }, [onMouseMove]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    startXRef.current = e.clientX;
-    startWidthRef.current = drawerWidth;
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-  };
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      startXRef.current = e.clientX;
+      startWidthRef.current = drawerWidth;
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    },
+    [drawerWidth, onMouseMove, onMouseUp]
+  );
 
   const previewTabs: TabItem[] = [
     {
-      id: 'preview-code',
-      title: 'Code',
+      id: "preview-code",
+      title: "Code",
       icon: <CodeTabIcon size={14} />,
       content: <CodeSubTabs />,
     },
     {
-      id: 'preview-live',
-      title: 'Live Preview',
+      id: "preview-live",
+      title: "Live Preview",
       icon: <LivePreviewTabIcon size={14} />,
       content: (
-        <MockPreviewWindow
-          htmlCode={htmlCode}
-          cssCode={cssCode}
-          jsCode={jsCode}
-        />
+        <LivePreview htmlCode={htmlCode} cssCode={cssCode} jsCode={jsCode} />
       ),
     },
     {
-      id: 'preview-markdown',
-      title: 'Markdown',
+      id: "preview-markdown",
+      title: "Markdown",
       icon: <MarkdownTabIcon size={14} />,
       content: (
-        <div className="text-sm p-2">
-          <p>Markdown Content Goes Here...</p>
+        <div className="p-4 overflow-y-auto h-full bg-base-100 rounded-md">
+          <MarkdownRenderer
+            markdownContent={markdownContent}
+            ariaLabel="Project Markdown Preview"
+          />
         </div>
       ),
     },
@@ -89,27 +142,30 @@ const ResizableDrawer: React.FC<DrawerProps> = ({
 
   return (
     <aside
-      className={`drawer drawer-end${className ? ' ' + className : ''}`}
+      className={`drawer drawer-end${className ? " " + className : ""}`}
       style={style}
       data-component="ResizableDrawer"
       aria-label="Preview Drawer"
       role="complementary"
     >
       <input id={id} type="checkbox" className="drawer-toggle" />
-      <div className="drawer-content">
-        {mainContent}
-      </div>
+      <div className="drawer-content">{mainContent}</div>
+
       <nav
         className="drawer-side"
         style={{ zIndex }}
         aria-label="Preview Drawer Side"
-        role="region"
+        role="navigation"
         data-element="drawer-side"
       >
-        <label htmlFor={id} aria-label="Close Preview Drawer" className="drawer-overlay" />
+        <label
+          htmlFor={id}
+          aria-label="Close Preview Drawer"
+          className="drawer-overlay"
+        />
         <section
           ref={drawerContentRef}
-          className="bg-zinc-800 text-base-content min-h-full h-full p-8 relative flex flex-col"
+          className="bg-zinc-800 text-base-content min-h-full h-full p-4 relative flex flex-col"
           style={{ width: `${drawerWidth}px`, minWidth: `${MIN_WIDTH}px` }}
           aria-label="Preview Drawer Content"
           role="region"
@@ -120,20 +176,27 @@ const ResizableDrawer: React.FC<DrawerProps> = ({
             className="absolute top-0 left-0 w-2 h-full bg-base-content/30 hover:bg-primary cursor-ew-resize z-10"
             onMouseDown={handleMouseDown}
             title="Resize Drawer"
-            aria-label="Resize Drawer"
+            aria-label="Resize Drawer Handle"
             role="separator"
-            data-element="resize-handle"
+            aria-orientation="vertical"
+            aria-valuenow={drawerWidth}
+            aria-valuemin={MIN_WIDTH}
           />
 
-          {/* Header Container */}
-          <header className="pl-2 flex-shrink-0" aria-label="Drawer Header" role="banner">
-            <DrawerHeader icon={<EyeIcon size={20} />} title="Preview Project" />
+          <header
+            className="pl-2 flex-shrink-0 mb-2"
+            aria-label="Drawer Header"
+            role="banner"
+          >
+            <DrawerHeader
+              icon={<EyeIcon size={20} />}
+              title="Preview Project"
+            />
           </header>
 
-          {/* Tabbed Group Container */}
           <section
-            className="pl-2 flex-grow overflow-hidden"
-            aria-label="Preview Tabs"
+            className="pl-2 flex-grow overflow-hidden flex flex-col"
+            aria-label="Preview Tabs Container"
             role="region"
             data-element="tabbed-group-container"
           >
@@ -143,8 +206,7 @@ const ResizableDrawer: React.FC<DrawerProps> = ({
               defaultTabId="preview-code"
               id="project-preview-tab-group"
               data-testid="project-preview-tab-group"
-              className="h-full"
-              tabContentClassName="p-2 text-base-content/90"
+              className="flex flex-col flex-grow"
             />
           </section>
         </section>

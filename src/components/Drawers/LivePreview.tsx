@@ -6,6 +6,7 @@ interface LivePreviewProps {
   htmlCode: string;
   cssCode: string;
   jsCode: string;
+  isResizing?: boolean;
 }
 
 const LivePreview: React.FC<LivePreviewProps> = ({ htmlCode, cssCode, jsCode }) => {
@@ -107,22 +108,49 @@ const newSrcDoc = `
   }, [htmlCode, cssCode, jsCode]);
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-      {errors.length > 0 && (
-        <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '8px', fontSize: '14px' }}>
-          {errors.map((error, index) => (
-            <p key={index}>Error: {error}</p>
-          ))}
+    // Apply mockup-browser classes and structure HERE
+    <div className="mockup-browser border border-base-300 w-full h-full flex flex-col bg-base-200">
+      {/* Add the toolbar */}
+      <div className="mockup-browser-toolbar">
+        <div className="input border border-base-300">http://localhost:preview</div>
+      </div>
+
+      {/* Wrap the ORIGINAL content below in a new div for the mockup's content area */}
+      <div className="flex-grow flex flex-col overflow-hidden p-1">
+
+        {/* --- Start of your original content --- */}
+        {errors.length > 0 && (
+          <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '8px', fontSize: '14px', flexShrink: 0 /* Prevent error div from shrinking */ }}>
+            {errors.map((error, index) => (
+              <p key={index}>Error: {error}</p>
+            ))}
+          </div>
+        )}
+        {/* Wrap iframe in a div that grows and provides positioning context */}
+        <div className="flex-grow relative">
+          <iframe
+            srcDoc={srcDoc}
+            title="Live Preview"
+            sandbox="allow-scripts allow-modals"
+            // Adjust style for absolute positioning within the new container
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              border: 'none'
+              // Add pointerEvents fix if needed:
+              // pointerEvents: isResizing ? 'none' : 'auto'
+            }}
+          />
         </div>
-      )}
-      <iframe
-        srcDoc={srcDoc}
-        title="Live Preview"
-        sandbox="allow-scripts allow-modals"
-        style={{ width: '100%', height: '100%', border: 'none' }}
-      />
+        {/* --- End of your original content --- */}
+
+      </div>
     </div>
   );
+
 };
 
 export default LivePreview;
