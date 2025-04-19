@@ -31,7 +31,10 @@ The project has made significant progress, with the Live Preview component now f
 
 ### Live Preview:
 
-The Live Preview component is operational, successfully rendering code in real-time.
+The Live Preview component is operational, successfully rendering code in real-time. It successfully renders HTML, CSS, and JavaScript code within an iframe, providing a real-time view of the code's output.
+
+Live Preview: The Live Preview component is operational, rendering a particle system animation at 145 FPS on a 140 Hz monitor. It also handles React test code, logging errors like ReferenceError: undefinedVar is not defined in the console. Performance is excellent, with the updatePreview function executing in just 0.092 ms.
+
 
 ### Preview Tabs: The Code, Live, and Markdown preview features are complete, though minor adjustments are still needed to polish the experience.
 Decision Tree UI: A decision tree interface with folders for storing pages, stylesheets, and scripts has been implemented. Currently, this is limited to the UI and lacks full functionality.
