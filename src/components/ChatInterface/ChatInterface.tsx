@@ -1,5 +1,4 @@
-// /home/scott/Documents/Projects/Business-Development/Web-Dev/collaboration/src/components/ChatInterface/ChatInterface.tsx
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import ChatBubble from "../ChatBubbles/ChatBubbles.tsx";
 import ChatTextAreaInput from "../ChatTextAreaInput/ChatTextAreaInput.tsx";
 import SettingsDrawer from "../Drawers/SettingsDrawer.tsx";
@@ -7,9 +6,9 @@ import { Settings, Folder, EyeIcon, Send, Pause, Play, ArrowDown10, UserCog } fr
 import LLMStatusIndicator from "../LLMStatusIndicator/LLMStatusIndicator.tsx";
 import CollaborationSettings from "../Drawers/CollaborationSettings.tsx";
 
-// --- Ensure these are defined OUTSIDE the component function ---
+// --- Type definitions and constants ---
 type ChatMessage = {
-  id: string;
+  id: number; // Changed back to number to fix TypeScript errors
   senderName: string;
   role: "user" | "worker1" | "worker2";
   message: string;
@@ -21,33 +20,13 @@ const userBubbleColor = "info";
 const worker1BubbleColor = "warning";
 const worker2BubbleColor = "success";
 
+// Updated initialChatMessages to use numeric IDs
 const initialChatMessages: ChatMessage[] = [
-  {
-    id: "msg-2",
-    senderName: "System User",
-    role: "user",
-    message: "I hate you!",
-    time: "12:46",
-    footerText: "Seen at 12:46",
-  },
-  {
-    id: "msg-1",
-    senderName: "Worker 1",
-    role: "worker1",
-    message: "You were the Chosen One!",
-    time: "12:45",
-    footerText: "Delivered",
-  },
-  {
-    id: "msg-3",
-    senderName: "Worker 2",
-    role: "worker2",
-    message: "Patience you must have.",
-    time: "12:47",
-  },
+  { id: 2, senderName: "System User", role: "user", message: "One moment please...", time: "12:46", footerText: "Seen at 12:46" },
+  { id: 1, senderName: "Worker 1", role: "worker1", message: "Not much. Just waiting on the user...", time: "12:45", footerText: "Delivered" },
+  { id: 3, senderName: "Worker 2", role: "worker2", message: "Sup?", time: "12:47" },
 ];
 // --- End of definitions ---
-
 
 interface ChatInterfaceProps {
   folderDrawerId: string;
@@ -58,11 +37,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   folderDrawerId,
   previewDrawerId,
 }) => {
-  // This line needs 'initialChatMessages' to be defined in the scope above
   const [messages, setMessages] = useState<ChatMessage[]>(initialChatMessages);
   const [inputValue, setInputValue] = useState("");
+  const [isPaused, setIsPaused] = useState(false);
+  const feedbackTimeoutRef = useRef<number | null>(null);
 
-  // Helper functions
+  // --- Helper functions ---
   const getBubbleColor = (role: ChatMessage["role"]): string => {
     switch (role) {
       case "user": return userBubbleColor;
@@ -82,18 +62,62 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
-  const handleSendMessage = () => {
-    if (!inputValue.trim()) return;
-    const newMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      senderName: "User", role: "user", message: inputValue,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-    setMessages([newMessage, ...messages]);
-    setInputValue("");
+  // --- Action Handlers ---
+  const handlePause = () => {
+    console.log("Pausing...");
+    setIsPaused(true);
+    setInputValue(""); // Clear input field when pausing
+    // TODO: Signal AI workers to pause
   };
 
-  // Define the trigger element for the SettingsDrawer
+  const handleResume = () => {
+    console.log("Resuming...");
+    setIsPaused(false);
+    setInputValue(""); // Clear input
+    // TODO: Signal AI workers to resume
+  };
+
+  const handleSendMessage = () => {
+    const trimmedInput = inputValue.trim();
+    if (!trimmedInput) return;
+
+    if (isPaused) {
+      console.log("Send/Enter while paused: Triggering resume with interjection");
+      // Add interjection message
+      const newMessage: ChatMessage = {
+        id: messages.length + 1, // Use numeric ID
+        senderName: "User",
+        role: "user",
+        message: trimmedInput,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages((prevMessages) => [newMessage, ...prevMessages]);
+      setInputValue("Interjection submitted to the collaboration");
+      setTimeout(() => setInputValue(""), 4000); // Clear feedback after 4s
+      setIsPaused(false);
+      // TODO: Signal AI workers to resume with interjection
+    } else {
+      console.log("Send/Enter while active: Sending normally");
+      const newMessage: ChatMessage = {
+        id: messages.length + 1, // Use numeric ID
+        senderName: "User",
+        role: "user",
+        message: trimmedInput,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages((prevMessages) => [newMessage, ...prevMessages]);
+      setInputValue("");
+      // TODO: Signal AI workers to process the message
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
   const settingsTrigger = (
     <button
       className="btn btn-sm btn-ghost tooltip tooltip-top"
@@ -104,6 +128,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     </button>
   );
 
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (feedbackTimeoutRef.current) {
+        clearTimeout(feedbackTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <>
       <main
@@ -113,22 +146,32 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         {/* Chat History Section */}
         <section
           className="flex flex-col-reverse gap-4 w-full max-w-4xl p-4 border border-dashed border-base-content/30 rounded mb-4 overflow-y-auto flex-grow"
-          aria-label="Chat History" role="log"
+          aria-label="Chat History" role="log" aria-live="polite"
         >
           {messages.map((msg) => (
             <ChatBubble
-              key={msg.id} fontSize="0.90rem" senderName={msg.senderName} time={msg.time}
-              message={msg.message} avatarIcon={getAvatarIcon(msg.role)} footerText={msg.footerText}
-              isSender={msg.role === "user"} bubbleColor={getBubbleColor(msg.role)}
+              key={msg.id}
+              fontSize="0.90rem"
+              senderName={msg.senderName}
+              time={msg.time}
+              message={msg.message}
+              avatarIcon={getAvatarIcon(msg.role)}
+              footerText={msg.footerText}
+              isSender={msg.role === "user"}
+              bubbleColor={getBubbleColor(msg.role)}
             />
           ))}
         </section>
 
         {/* Chat Input Section */}
-        <section
+        <form
           id="ChatInputContainer"
           className="flex flex-col items-center w-full max-w-4xl m-auto justify-center bg-zinc-800 rounded-sm p-4 z-10 flex-none"
           aria-label="Chat Input Area" role="region"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSendMessage();
+          }}
         >
           {/* Text Area Input */}
           <div
@@ -138,8 +181,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           >
             <ChatTextAreaInput
               placeholder="Type your message..."
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
-              onChange={(value) => setInputValue(value)} rows={2} value={inputValue} disabled={false}
+              onChange={(value) => setInputValue(value)}
+              onKeyDown={handleKeyDown}
+              rows={2}
+              value={inputValue}
+              disabled={false}
+              isPaused={isPaused}
+              ariaControls="chat-send-button"
             />
           </div>
 
@@ -151,18 +199,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           >
             {/* Left Buttons */}
             <div id="chat-settings-buttons" className="flex flex-row gap-2">
-               <label htmlFor={folderDrawerId} className="btn btn-sm btn-ghost drawer-button tooltip tooltip-top" data-tip="Browse Files" aria-label="Open Folder Drawer">
-                 <Folder size={16} />
-               </label>
-
-               {/* Settings Drawer Trigger */}
-               <SettingsDrawer trigger={settingsTrigger}>
-               <CollaborationSettings />
-               </SettingsDrawer>
-
-               <label htmlFor={previewDrawerId} className="btn btn-sm btn-ghost drawer-button tooltip tooltip-top" data-tip="Preview Project" aria-label="Open Preview Drawer">
-                 <EyeIcon size={16} />
-               </label>
+              <label htmlFor={folderDrawerId} className="btn btn-sm btn-ghost drawer-button tooltip tooltip-top" data-tip="Browse Files" aria-label="Open Folder Drawer">
+                <Folder size={16} />
+              </label>
+              <SettingsDrawer trigger={settingsTrigger}>
+                <CollaborationSettings />
+              </SettingsDrawer>
+              <label htmlFor={previewDrawerId} className="btn btn-sm btn-ghost drawer-button tooltip tooltip-top" data-tip="Preview Project" aria-label="Open Preview Drawer">
+                <EyeIcon size={16} />
+              </label>
             </div>
 
             {/* LLM Status Indicator */}
@@ -171,16 +216,41 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
 
             {/* Right Buttons */}
-            <div id="chat-input-buttons" className="flex flex-row gap-2 ml-auto">
-              <button className="btn btn-sm btn-ghost tooltip tooltip-top" data-tip="Pause Chat" aria-label="Pause"><Pause size={16} /></button>
-              <button className="btn btn-sm btn-ghost tooltip tooltip-top" data-tip="Resume Chat" aria-label="Resume"><Play size={16} /></button>
-              <button className="btn btn-sm btn-ghost tooltip tooltip-top" data-tip="Send Message" onClick={handleSendMessage} aria-label="Send Message" disabled={!inputValue.trim()}><Send size={16} /></button>
+            <div id="chat-action-buttons" className="flex flex-row gap-2 ml-auto" role="group" aria-label="Chat Actions">
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost tooltip tooltip-top"
+                data-tip="Pause Chat"
+                aria-label="Pause"
+                onClick={handlePause}
+                disabled={isPaused}
+              >
+                <Pause size={16} />
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost tooltip tooltip-top"
+                data-tip="Resume Chat"
+                aria-label="Resume"
+                onClick={handleResume}
+                disabled={!isPaused}
+              >
+                <Play size={16} />
+              </button>
+              <button
+                id="chat-send-button"
+                type="submit"
+                className="btn btn-sm btn-ghost tooltip tooltip-top"
+                data-tip="Send Message"
+                aria-label="Send Message"
+                disabled={!inputValue.trim()}
+              >
+                <Send size={16} />
+              </button>
             </div>
           </nav>
-        </section>
+        </form>
       </main>
-
-      {/* SettingsDrawer is rendered inline now */}
     </>
   );
 };
