@@ -1,4 +1,3 @@
-// /home/scott/Documents/Projects/Business-Development/Web-Dev/collaboration/src/components/ChatTextAreaInput/ChatTextAreaInput.tsx
 import React, { ChangeEvent, KeyboardEvent } from 'react';
 
 interface ChatTextAreaInputProps {
@@ -8,40 +7,44 @@ interface ChatTextAreaInputProps {
   placeholder?: string;
   rows?: number;
   disabled?: boolean;
-  isPaused?: boolean; // <-- Add isPaused prop
-  ariaControls?: string; // For aria-controls attribute
+  isPaused?: boolean;
+  tempPlaceholder?: string; // Add tempPlaceholder prop
+  ariaControls?: string;
 }
 
 const ChatTextAreaInput: React.FC<ChatTextAreaInputProps> = ({
   value,
   onChange,
   onKeyDown,
-  placeholder = "Type your message...", // Default placeholder
+  placeholder = "Type your message...",
   rows = 2,
   disabled = false,
-  isPaused = false, // <-- Destructure isPaused
+  isPaused = false,
+  tempPlaceholder, // Destructure tempPlaceholder
   ariaControls,
 }) => {
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     onChange(event.target.value);
   };
 
-  // Determine the placeholder based on the paused state
-  const currentPlaceholder = isPaused
+  // Determine the placeholder: tempPlaceholder takes priority, then isPaused logic
+  const currentPlaceholder = tempPlaceholder
+    ? tempPlaceholder
+    : isPaused
     ? "Collaboration Paused: Please interject..."
     : placeholder;
 
   return (
     <textarea
-      className="textarea textarea-bordered flex-1 w-full outline-none focus:outline-none border-none bg-base-200 text-base-content placeholder:text-base-content/50 resize-none"
+      className="textarea textarea-bordered flex-1 w-full outline-none focus:outline-none border-none bg-zinc-800 text-base-content placeholder:text-base-content/50 resize-none"
       value={value}
       onChange={handleChange}
       onKeyDown={onKeyDown}
-      placeholder={currentPlaceholder} // <-- Use dynamic placeholder
+      placeholder={currentPlaceholder}
       rows={rows}
       disabled={disabled}
       aria-controls={ariaControls}
-      aria-label={currentPlaceholder} // Use placeholder as accessible label too
+      aria-label={currentPlaceholder}
     />
   );
 };

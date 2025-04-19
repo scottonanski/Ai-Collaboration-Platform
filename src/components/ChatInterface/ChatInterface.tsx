@@ -8,7 +8,7 @@ import CollaborationSettings from "../Drawers/CollaborationSettings.tsx";
 
 // --- Type definitions and constants ---
 type ChatMessage = {
-  id: number; // Changed back to number to fix TypeScript errors
+  id: number;
   senderName: string;
   role: "user" | "worker1" | "worker2";
   message: string;
@@ -20,7 +20,6 @@ const userBubbleColor = "info";
 const worker1BubbleColor = "warning";
 const worker2BubbleColor = "success";
 
-// Updated initialChatMessages to use numeric IDs
 const initialChatMessages: ChatMessage[] = [
   { id: 2, senderName: "System User", role: "user", message: "One moment please...", time: "12:46", footerText: "Seen at 12:46" },
   { id: 1, senderName: "Worker 1", role: "worker1", message: "Not much. Just waiting on the user...", time: "12:45", footerText: "Delivered" },
@@ -40,6 +39,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>(initialChatMessages);
   const [inputValue, setInputValue] = useState("");
   const [isPaused, setIsPaused] = useState(false);
+  const [tempPlaceholder, setTempPlaceholder] = useState<string | undefined>(undefined); // New state for temporary placeholder
   const feedbackTimeoutRef = useRef<number | null>(null);
 
   // --- Helper functions ---
@@ -85,21 +85,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       console.log("Send/Enter while paused: Triggering resume with interjection");
       // Add interjection message
       const newMessage: ChatMessage = {
-        id: messages.length + 1, // Use numeric ID
+        id: messages.length + 1,
         senderName: "User",
         role: "user",
         message: trimmedInput,
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prevMessages) => [newMessage, ...prevMessages]);
-      setInputValue("Interjection submitted to the collaboration");
-      setTimeout(() => setInputValue(""), 4000); // Clear feedback after 4s
+      // Set temporary placeholder instead of inputValue
+      setTempPlaceholder("Interjection submitted to the collaboration");
+      setInputValue(""); // Clear the input immediately
+      feedbackTimeoutRef.current = window.setTimeout(() => {
+        setTempPlaceholder(undefined);
+        feedbackTimeoutRef.current = null;
+      }, 4000); // Clear placeholder after 4s
       setIsPaused(false);
       // TODO: Signal AI workers to resume with interjection
     } else {
       console.log("Send/Enter while active: Sending normally");
       const newMessage: ChatMessage = {
-        id: messages.length + 1, // Use numeric ID
+        id: messages.length + 1,
         senderName: "User",
         role: "user",
         message: trimmedInput,
@@ -187,6 +192,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               value={inputValue}
               disabled={false}
               isPaused={isPaused}
+              tempPlaceholder={tempPlaceholder} // Pass the temporary placeholder
               ariaControls="chat-send-button"
             />
           </div>
