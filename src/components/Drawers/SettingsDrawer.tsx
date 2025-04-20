@@ -118,7 +118,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
               Cancel
             </button>
             <button
-              className={`btn btn-sm ${isAccepted ? 'btn-success' : 'btn-primary'}`}
+              className={`btn btn-sm ${isAccepted ? 'btn-success' : 'btn-primary'} w-24`}
               onClick={handleAccept}
               disabled={
                 !worker1Name ||
@@ -127,9 +127,13 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
                 !worker2Model ||
                 turns < 1
               }
-              aria-label={isAccepted ? 'Settings Applied!' : 'Accept Settings'}
+              aria-label={isAccepted ? 'Applying Settings' : 'Accept Settings'}
             >
-              {isAccepted ? 'Settings Applied!' : 'Accept'}
+              {isAccepted ? (
+                <span className="loading loading-spinner loading-xs"></span>
+              ) : (
+                'Accept'
+              )}
             </button>
           </div>
         </div>

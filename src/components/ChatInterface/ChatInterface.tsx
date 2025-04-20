@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import ChatBubble from "../ChatBubbles/ChatBubbles.tsx";
-import ChatTextAreaInput from "../ChatTextAreaInput/ChatTextAreaInput.tsx";
-import SettingsDrawer from "../Drawers/SettingsDrawer.tsx";
+import ChatBubble from "../ChatBubbles/ChatBubbles";
+import ChatTextAreaInput from "../ChatTextAreaInput/ChatTextAreaInput";
+import SettingsDrawer from "../Drawers/SettingsDrawer";
 import { Settings, Folder, EyeIcon, Send, Pause, Play, ArrowDown10, UserCog } from "lucide-react";
-import LLMStatusIndicator, { LLMStatus } from "../LLMStatusIndicator/LLMStatusIndicator.tsx";
-import CollaborationSettings from "../Drawers/CollaborationSettings.tsx";
+import LLMStatusIndicator, { LLMStatus } from "../LLMStatusIndicator/LLMStatusIndicator";
+import CollaborationSettings from "../Drawers/CollaborationSettings";
 import { checkOllamaConnection, fetchOllamaModels, generateOllamaResponse } from "../../services/ollamaServices";
 
 type ChatMessage = {
@@ -191,7 +191,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   const handleAcceptSettings = () => {
-    console.log("Settings accepted in ChatInterface");
+    console.log("Settings accepted in ChatInterface", {
+      worker1Name,
+      worker1Model,
+      worker2Name,
+      worker2Model,
+      api1Provider,
+      apiKey1,
+      api2Provider,
+      apiKey2,
+      turns,
+      requestSummary,
+    });
   };
 
   const settingsTrigger = (
