@@ -2,32 +2,16 @@ import React, { useState, useRef, useEffect } from "react";
 import ChatBubble from "../ChatBubbles/ChatBubbles";
 import ChatTextAreaInput from "../ChatTextAreaInput/ChatTextAreaInput";
 import SettingsDrawer from "../Drawers/SettingsDrawer";
-import { Settings, Folder, EyeIcon, Send, Pause, Play, ArrowDown10, UserCog } from "lucide-react";
+import { Settings, Folder, EyeIcon, Send, Pause, Play, ArrowDown10, UserCog, Loader2 } from "lucide-react";
 import LLMStatusIndicator, { LLMStatus } from "../LLMStatusIndicator/LLMStatusIndicator";
 import CollaborationSettings from "../Drawers/CollaborationSettings";
-import { checkOllamaConnection, fetchOllamaModels, generateOllamaResponse } from "../../services/ollamaServices";
-import { encoding_for_model } from "tiktoken";
-
-type ChatMessage = {
-  id: number;
-  senderName: string;
-  role: "user" | "worker1" | "worker2";
-  message: string;
-  createdAt: string;
-  footerText?: string;
-  type: "message" | "summary";
-  turn?: number;
-};
+import { checkOllamaConnection, fetchOllamaModels } from "../../services/ollamaServices";
+import { CollaborationState, ChatMessage } from "../../collaborationTypes";
+import { CollaborationService } from "../../services/CollaborationService";
 
 const userBubbleColor = "info";
 const worker1BubbleColor = "warning";
 const worker2BubbleColor = "success";
-
-const initialChatMessages: ChatMessage[] = [
-  { id: 1, senderName: "Worker 1", role: "worker1", message: "Not much. Just waiting on the user...", createdAt: "2025-04-20T12:45:00Z", footerText: "Delivered", type: "message" },
-  { id: 2, senderName: "System User", role: "user", message: "One moment please...", createdAt: "2025-04-20T12:46:00Z", footerText: "Seen at 12:46", type: "message" },
-  { id: 3, senderName: "Worker 2", role: "worker2", message: "Sup?", createdAt: "2025-04-20T12:47:00Z", type: "message" },
-];
 
 interface ChatInterfaceProps {
   folderDrawerId: string;
@@ -38,77 +22,47 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   folderDrawerId,
   previewDrawerId,
 }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>(initialChatMessages);
+  const [collabService, setCollabService] = useState<CollaborationService | null>(null);
+  const [collabState, setCollabState] = useState<CollaborationState | null>(null);
   const [inputValue, setInputValue] = useState("");
-  const [isPaused, setIsPaused] = useState(false);
   const [tempPlaceholder, setTempPlaceholder] = useState<string | undefined>(undefined);
   const [llmStatus, setLlmStatus] = useState<LLMStatus>("disconnected");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(true);
-  const [worker1Name, setWorker1Name] = useState('Worker 1');
-  const [worker1Model, setWorker1Model] = useState('');
-  const [worker2Name, setWorker2Name] = useState('Worker 2');
-  const [worker2Model, setWorker2Model] = useState('');
-  const [api1Provider, setApi1Provider] = useState('');
-  const [api2Provider, setApi2Provider] = useState('');
+  const [worker1Name, setWorker1Name] = useState("Worker 1");
+  const [worker2Name, setWorker2Name] = useState("Worker 2");
+  const [worker1Model, setWorker1Model] = useState("");
+  const [worker2Model, setWorker2Model] = useState("");
+  const [api1Provider, setApi1Provider] = useState("");
+  const [api2Provider, setApi2Provider] = useState("");
   const [turns, setTurns] = useState(1);
   const [requestSummary, setRequestSummary] = useState(false);
-  const [apiKey1, setApiKey1] = useState('');
-  const [apiKey2, setApiKey2] = useState('');
+  const [apiKey1, setApiKey1] = useState("");
+  const [apiKey2, setApiKey2] = useState("");
   const [resumeOnInterjection, setResumeOnInterjection] = useState(true);
-  const [summaryModel, setSummaryModel] = useState<string>('');
+  const [summaryModel, setSummaryModel] = useState<string>("");
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const feedbackTimeoutRef = useRef<number | null>(null);
-  const nextIdRef = useRef(4);
 
-  // Token management setup
-  const MAX_TOKENS = 4000;
-  const tokenizer = encoding_for_model("gpt-3.5-turbo");
-
-  const countTokens = (text: string): number => {
-    try {
-      const encoded = tokenizer.encode(text);
-      return encoded.length;
-    } catch (error) {
-      console.error("Token counting failed:", error);
-      return text.length;
-    }
+  const handleStateUpdate = (newState: CollaborationState) => {
+    setCollabState(newState);
   };
 
-  const truncateConversationHistory = (history: string): string => {
-    let tokenCount = countTokens(history);
-    if (tokenCount <= MAX_TOKENS) return history;
-
-    let truncatedHistory = history;
-    const lines = truncatedHistory.split("\n");
-
-    while (tokenCount > MAX_TOKENS && lines.length > 0) {
-      lines.shift();
-      truncatedHistory = lines.join("\n");
-      tokenCount = countTokens(truncatedHistory);
-    }
-
-    return truncatedHistory;
-  };
-
-  const generateId = () => {
-    const id = nextIdRef.current;
-    nextIdRef.current += 1;
-    return id;
-  };
-
-  const formatMessageTime = (isoString: string): string => {
-    const date = new Date(isoString);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
+  useEffect(() => {
+    const service = new CollaborationService(handleStateUpdate);
+    setCollabService(service);
+    return () => {
+      console.log("CollaborationService instance cleanup (if necessary)");
+    };
+  }, []);
 
   useEffect(() => {
     const loadModels = async () => {
       setIsLoadingModels(true);
       try {
         const models = await fetchOllamaModels();
-        console.log('Fetched models in ChatInterface:', models);
+        console.log("Fetched models in ChatInterface:", models);
         const safeModels = Array.isArray(models) ? models : [];
         setAvailableModels(safeModels);
         if (safeModels.length > 0) {
@@ -117,7 +71,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           if (!summaryModel) setSummaryModel(safeModels[0]);
         }
       } catch (error) {
-        console.error('Failed to fetch Ollama models:', error);
+        console.error("Failed to fetch Ollama models:", error);
         setAvailableModels([]);
       } finally {
         setIsLoadingModels(false);
@@ -138,181 +92,84 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return () => clearInterval(intervalId);
   }, []);
 
-  const getBubbleColor = (role: ChatMessage["role"]): string => {
+  const getBubbleColor = (message: ChatMessage): string => {
+    const { role, senderName } = message;
+    if (role === "user" && senderName === "User (Injection)") {
+      return userBubbleColor;
+    }
+    if (role === "user" && senderName === "System") {
+      return "error";
+    }
     switch (role) {
-      case "user": return userBubbleColor;
-      case "worker1": return worker1BubbleColor;
-      case "worker2": return worker2BubbleColor;
-      default: return '';
+      case "user":
+        return userBubbleColor;
+      case "worker1":
+        return worker1BubbleColor;
+      case "worker2":
+        return worker2BubbleColor;
+      default:
+        return "";
     }
   };
 
-  const getAvatarIcon = (role: ChatMessage["role"]) => {
+  const getAvatarIcon = (message: ChatMessage) => {
+    const { role, senderName } = message;
     const iconSize = 18;
-    switch (role) {
-      case "user": return <UserCog size={iconSize} />;
-      case "worker1": return <ArrowDown10 size={iconSize} />;
-      case "worker2": return <Play size={iconSize} />;
-      default: return null;
+    if (role === "user" && senderName === "User (Injection)") {
+      return <UserCog size={iconSize} />;
     }
-  };
-
-  const handlePause = () => {
-    console.log("Pausing...");
-    setIsPaused(true);
-    setInputValue("");
-  };
-
-  const handleResume = () => {
-    console.log("Resuming...");
-    setIsPaused(false);
-    setInputValue("");
+    if (role === "user" && senderName === "System") {
+      return <UserCog size={iconSize} />;
+    }
+    switch (role) {
+      case "user":
+        return <UserCog size={iconSize} />;
+      case "worker1":
+        return <ArrowDown10 size={iconSize} />;
+      case "worker2":
+        return <Play size={iconSize} />;
+      default:
+        return null;
+    }
   };
 
   const handleSendMessage = async () => {
     const trimmedInput = inputValue.trim();
-    if (!trimmedInput) return;
+    if (!trimmedInput || !collabService) return;
 
-    const userMessage: ChatMessage = {
-      id: generateId(),
-      senderName: "User",
-      role: "user",
-      message: trimmedInput,
-      createdAt: new Date().toISOString(),
-      type: "message",
-    };
-    setMessages((prevMessages) => [...prevMessages, userMessage]);
-    setInputValue("");
-
-    if (isPaused) {
-      console.log("Send/Enter while paused: Triggering resume with interjection");
+    if (collabState?.control.isCollaborating && collabState?.control.isPaused) {
+      console.log("UI: Injecting message while paused.");
+      collabService.injectMessage(trimmedInput);
       setTempPlaceholder("Interjection submitted to the collaboration");
       feedbackTimeoutRef.current = window.setTimeout(() => {
         setTempPlaceholder(undefined);
         feedbackTimeoutRef.current = null;
       }, 4000);
       if (resumeOnInterjection) {
-        setIsPaused(false);
+        collabService.resumeCollaboration();
       }
-    }
-
-    let conversationHistory = trimmedInput;
-    conversationHistory = truncateConversationHistory(conversationHistory);
-
-    for (let turn = 1; turn <= turns; turn++) {
-      const worker1Prompt = `You are ${worker1Name} (Worker 1). The user said: "${trimmedInput}". The conversation so far: "${conversationHistory}". Respond as Worker 1 in turn ${turn} of ${turns}.`;
-      let worker1Response: string;
-      try {
-        const startTime = performance.now();
-        worker1Response = await generateOllamaResponse(worker1Model, worker1Prompt);
-        const duration = performance.now() - startTime;
-        console.log(`Worker 1 response time: ${duration.toFixed(2)}ms`);
-      } catch (error) {
-        console.error(`Worker 1 failed to respond:`, error);
-        worker1Response = `Failed to respond: ${error instanceof Error ? error.message : String(error)}`;
-        const errorMessage: ChatMessage = {
-          id: generateId(),
-          senderName: worker1Name,
-          role: "worker1",
-          message: worker1Response,
-          createdAt: new Date().toISOString(),
-          footerText: "Error",
-          type: "message",
-          turn,
-        };
-        setMessages((prevMessages) => [...prevMessages, errorMessage]);
-        continue;
-      }
-
-      const worker1Message: ChatMessage = {
-        id: generateId(),
-        senderName: worker1Name,
-        role: "worker1",
-        message: worker1Response,
-        createdAt: new Date().toISOString(),
-        type: "message",
-        turn,
+    } else if (!collabState?.control.isCollaborating) {
+      console.log("UI: Starting new collaboration.");
+      const config = {
+        turns,
+        worker1Model,
+        worker2Model,
+        worker1Name,
+        worker2Name,
       };
-      setMessages((prevMessages) => [...prevMessages, worker1Message]);
-      conversationHistory += `\n${worker1Name}: """${worker1Response}"""`;
-      conversationHistory = truncateConversationHistory(conversationHistory);
-
-      const worker2Prompt = `You are ${worker2Name} (Worker 2). The user said: "${trimmedInput}". The conversation so far: "${conversationHistory}". Respond as Worker 2 in turn ${turn} of ${turns}, building on Worker 1's response.`;
-      let worker2Response: string;
-      try {
-        const startTime = performance.now();
-        worker2Response = await generateOllamaResponse(worker2Model, worker2Prompt);
-        const duration = performance.now() - startTime;
-        console.log(`Worker 2 response time: ${duration.toFixed(2)}ms`);
-      } catch (error) {
-        console.error(`Worker 2 failed to respond:`, error);
-        worker2Response = `Failed to respond: ${error instanceof Error ? error.message : String(error)}`;
-        const errorMessage: ChatMessage = {
-          id: generateId(),
-          senderName: worker2Name,
-          role: "worker2",
-          message: worker2Response,
-          createdAt: new Date().toISOString(),
-          footerText: "Error",
-          type: "message",
-          turn,
-        };
-        setMessages((prevMessages) => [...prevMessages, errorMessage]);
-        continue;
-      }
-
-      const worker2Message: ChatMessage = {
-        id: generateId(),
-        senderName: worker2Name,
-        role: "worker2",
-        message: worker2Response,
-        createdAt: new Date().toISOString(),
-        type: "message",
-        turn,
-      };
-      setMessages((prevMessages) => [...prevMessages, worker2Message]);
-      conversationHistory += `\n${worker2Name}: """${worker2Response}"""`;
-      conversationHistory = truncateConversationHistory(conversationHistory);
+      await collabService.startCollaboration(trimmedInput, config);
+    } else {
+      console.warn("UI: Cannot send message - collaboration in progress and not paused.");
     }
+    setInputValue("");
+  };
 
-    if (requestSummary) {
-      const summaryPrompt = `Summarize the conversation: "${conversationHistory}".`;
-      const modelToUse = summaryModel || worker1Model;
-      let summaryResponse: string;
-      try {
-        const startTime = performance.now();
-        summaryResponse = await generateOllamaResponse(modelToUse, summaryPrompt);
-        const duration = performance.now() - startTime;
-        console.log(`Summary response time: ${duration.toFixed(2)}ms`);
-      } catch (error) {
-        console.error(`Summary failed:`, error);
-        summaryResponse = `Failed to summarize: ${error instanceof Error ? error.message : String(error)}`;
-        const errorMessage: ChatMessage = {
-          id: generateId(),
-          senderName: "Summary",
-          role: "worker1",
-          message: summaryResponse,
-          createdAt: new Date().toISOString(),
-          footerText: "Error",
-          type: "message",
-          turn: turns,
-        };
-        setMessages((prevMessages) => [...prevMessages, errorMessage]);
-        return;
-      }
+  const handlePause = () => {
+    collabService?.pauseCollaboration();
+  };
 
-      const summaryMessage: ChatMessage = {
-        id: generateId(),
-        senderName: "Summary",
-        role: "worker1",
-        message: summaryResponse,
-        createdAt: new Date().toISOString(),
-        footerText: "Conversation Summary",
-        type: "summary",
-        turn: turns,
-      };
-      setMessages((prevMessages) => [...prevMessages, summaryMessage]);
-    }
+  const handleResume = () => {
+    collabService?.resumeCollaboration();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -349,6 +206,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     </button>
   );
 
+  const messagesToDisplay = collabState?.memory.workingMemory ?? [];
+
+  const canPause = collabState?.control.isCollaborating && !collabState?.control.isPaused;
+  const canResume = collabState?.control.isCollaborating && collabState?.control.isPaused;
+
+  const formatMessageTime = (isoString: string): string => {
+    const date = new Date(isoString);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
   useEffect(() => {
     return () => {
       if (feedbackTimeoutRef.current) {
@@ -365,13 +232,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
       }
     }
-  }, [messages]);
-
-  useEffect(() => {
-    return () => {
-      tokenizer.free();
-    };
-  }, []);
+  }, [messagesToDisplay]);
 
   return (
     <>
@@ -384,11 +245,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <div
           ref={chatContainerRef}
           className="flex flex-col gap-4 w-full max-w-4xl p-4 border border-dashed border-base-content/30 rounded mb-4 overflow-y-auto flex-grow"
-          aria-label="Chat History"
+          aria-label="Chat HistoryDEB"
           role="log"
           aria-live="polite"
         >
-          {[...messages]
+          {collabState?.control.isCollaborating && !collabState?.control.isPaused && (
+            <div className="flex justify-center items-center p-2">
+              <Loader2 className="animate-spin" size={24} />
+              <span className="ml-2">Collaborating...</span>
+            </div>
+          )}
+          {messagesToDisplay
             .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
             .map((msg, i, sortedMessages) => {
               const prevRole = sortedMessages[i - 1]?.role;
@@ -403,10 +270,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   senderName={msg.senderName}
                   time={formatMessageTime(msg.createdAt)}
                   message={msg.message}
-                  avatarIcon={getAvatarIcon(msg.role)}
+                  avatarIcon={getAvatarIcon(msg)}
                   footerText={msg.footerText}
                   isSender={msg.role === "user"}
-                  bubbleColor={getBubbleColor(msg.role)}
+                  bubbleColor={getBubbleColor(msg)}
                   isFirstInGroup={isFirstInGroup}
                   isLastInGroup={isLastInGroup}
                   type={msg.type}
@@ -438,8 +305,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               onKeyDown={handleKeyDown}
               rows={2}
               value={inputValue}
-              disabled={false}
-              isPaused={isPaused}
+              disabled={collabState?.control.isCollaborating && !collabState?.control.isPaused}
+              isPaused={collabState?.control.isPaused ?? false}
               tempPlaceholder={tempPlaceholder}
               ariaControls="chat-send-button"
             />
@@ -463,8 +330,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               <SettingsDrawer
                 trigger={settingsTrigger}
                 worker1Name={worker1Name}
-                worker1Model={worker1Model}
                 worker2Name={worker2Name}
+                worker1Model={worker1Model}
                 worker2Model={worker2Model}
                 turns={turns}
                 onAcceptSettings={handleAcceptSettings}
@@ -527,7 +394,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 data-tip="Pause Chat"
                 aria-label="Pause"
                 onClick={handlePause}
-                disabled={isPaused}
+                disabled={!canPause}
               >
                 <Pause size={16} />
               </button>
@@ -537,7 +404,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 data-tip="Resume Chat"
                 aria-label="Resume"
                 onClick={handleResume}
-                disabled={!isPaused}
+                disabled={!canResume}
               >
                 <Play size={16} />
               </button>
