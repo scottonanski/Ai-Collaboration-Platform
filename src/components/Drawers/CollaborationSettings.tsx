@@ -1,6 +1,4 @@
-import React from 'react';
-import WorkerForm from '../WorkerForm/WorkerForm';
-import ApiKeyForm from '../ApiKeyForm/ApiKeyForm';
+import React from "react";
 
 interface CollaborationSettingsProps {
   worker1Name: string;
@@ -24,7 +22,11 @@ interface CollaborationSettingsProps {
   setApiKey1: React.Dispatch<React.SetStateAction<string>>;
   apiKey2: string;
   setApiKey2: React.Dispatch<React.SetStateAction<string>>;
-  isLoadingModels?: boolean;
+  isLoadingModels: boolean;
+  resumeOnInterjection: boolean;
+  setResumeOnInterjection: React.Dispatch<React.SetStateAction<boolean>>;
+  summaryModel: string;
+  setSummaryModel: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const CollaborationSettings: React.FC<CollaborationSettingsProps> = ({
@@ -36,7 +38,7 @@ const CollaborationSettings: React.FC<CollaborationSettingsProps> = ({
   setWorker2Name,
   worker2Model,
   setWorker2Model,
-  availableModels,
+  availableModels = [],
   api1Provider,
   setApi1Provider,
   api2Provider,
@@ -49,110 +51,204 @@ const CollaborationSettings: React.FC<CollaborationSettingsProps> = ({
   setApiKey1,
   apiKey2,
   setApiKey2,
-  isLoadingModels = false,
+  isLoadingModels,
+  resumeOnInterjection,
+  setResumeOnInterjection,
+  summaryModel,
+  setSummaryModel,
 }) => {
-  const apiProviders = ['OpenAI', 'Google', 'Anthropic'];
-
   return (
-    <div className="flex flex-col h-full w-full">
-      <div
-        className="flex-1 overflow-y-auto p-5"
-        tabIndex={0}
-        aria-label="Collaboration Settings Options"
-      >
-        {/* Worker One Configuration */}
-        <section className="flex gap-6 mb-10">
-          <WorkerForm
-            workerName={worker1Name}
-            setWorkerName={setWorker1Name}
-            workerModel={worker1Model}
-            setWorkerModel={setWorker1Model}
-            availableModels={availableModels}
-            isLoadingModels={isLoadingModels}
-            workerId="worker1"
-            workerLabel="Worker 1"
-          />
-        </section>
+    <div className="flex flex-col gap-4 p-4">
+      {/* Worker 1 Settings */}
+      <div className="form-control">
+        <label className="label">
+          <span className="label-text">Worker 1 Name</span>
+        </label>
+        <input
+          type="text"
+          value={worker1Name}
+          onChange={(e) => setWorker1Name(e.target.value)}
+          className="input input-bordered w-full"
+          placeholder="Worker 1"
+        />
+      </div>
 
-        {/* Worker Two Configuration Options */}
-        <section className="flex gap-6 mb-10">
-          <WorkerForm
-            workerName={worker2Name}
-            setWorkerName={setWorker2Name}
-            workerModel={worker2Model}
-            setWorkerModel={setWorker2Model}
-            availableModels={availableModels}
-            isLoadingModels={isLoadingModels}
-            workerId="worker2"
-            workerLabel="Worker 2"
-          />
-        </section>
-
-        {/* Amount of Turns per Model, and Summary Report Turn */}
-        <section
-          role="region"
-          aria-labelledby="turns-summary-heading"
-          className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center border-t border-base-content/10 py-5"
+      <div className="form-control">
+        <label className="label">
+          <span className="label-text">Worker 1 Model</span>
+        </label>
+        <select
+          value={worker1Model}
+          onChange={(e) => setWorker1Model(e.target.value)}
+          className="select select-bordered w-full"
+          disabled={isLoadingModels || availableModels.length === 0}
         >
-          <h3 id="turns-summary-heading" className="sr-only">
-            Turns and Summary Settings
-          </h3>
-          <div className="form-control">
-            <label className="label mr-3">
-              <span className="text-sm label-text">Turns</span>
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={turns}
-              onChange={(e) => setTurns(Math.max(1, parseInt(e.target.value, 10) || 1))}
-              className="input input-bordered input-sm w-full max-w-[100px]"
-              aria-label="Number of turns"
-            />
-          </div>
-          <div className="form-control">
-            <label className="label cursor-pointer gap-3">
-              <span className="text-sm label-text">Summary Turn</span>
-              <input
-                type="checkbox"
-                checked={requestSummary}
-                onChange={(e) => setRequestSummary(e.target.checked)}
-                className="checkbox checkbox-sm"
-                aria-label="Request summary turn"
-              />
-            </label>
-          </div>
-        </section>
+          {isLoadingModels ? (
+            <option>Loading models...</option>
+          ) : availableModels.length === 0 ? (
+            <option>No models available</option>
+          ) : (
+            availableModels.map((model) => (
+              <option key={model} value={model}>
+                {model}
+              </option>
+            ))
+          )}
+        </select>
+      </div>
 
-        {/* Options for using External APIs (Google, Anthropic, OpenAI) */}
-        <section
-          role="region"
-          aria-labelledby="api-keys-heading"
-          className="space-y-4 border-t border-base-content/10 pt-8"
+      <div className="form-control">
+        <label className="label">
+          <span className="label-text">Worker 1 API Provider</span>
+        </label>
+        <input
+          type="text"
+          value={api1Provider}
+          onChange={(e) => setApi1Provider(e.target.value)}
+          className="input input-bordered w-full"
+          placeholder="API Provider"
+        />
+      </div>
+
+      <div className="form-control">
+        <label className="label">
+          <span className="label-text">Worker 1 API Key</span>
+        </label>
+        <input
+          type="password"
+          value={apiKey1}
+          onChange={(e) => setApiKey1(e.target.value)}
+          className="input input-bordered w-full"
+          placeholder="API Key"
+        />
+      </div>
+
+      {/* Worker 2 Settings */}
+      <div className="form-control">
+        <label className="label">
+          <span className="label-text">Worker 2 Name</span>
+        </label>
+        <input
+          type="text"
+          value={worker2Name}
+          onChange={(e) => setWorker2Name(e.target.value)}
+          className="input input-bordered w-full"
+          placeholder="Worker 2"
+        />
+      </div>
+
+      <div className="form-control">
+        <label className="label">
+          <span className="label-text">Worker 2 Model</span>
+        </label>
+        <select
+          value={worker2Model}
+          onChange={(e) => setWorker2Model(e.target.value)}
+          className="select select-bordered w-full"
+          disabled={isLoadingModels || availableModels.length === 0}
         >
-          <h3 id="api-keys-heading" className="sr-only">
-            API Keys Configuration
-          </h3>
-          <ApiKeyForm
-            apiProvider={api1Provider}
-            setApiProvider={setApi1Provider}
-            apiKey={apiKey1}
-            setApiKey={setApiKey1}
-            apiProviders={apiProviders}
-            label="API Key 1 (Optional)"
-            ariaLabel="API Key 1"
-            extraClass="mb-10"
+          {isLoadingModels ? (
+            <option>Loading models...</option>
+          ) : availableModels.length === 0 ? (
+            <option>No models available</option>
+          ) : (
+            availableModels.map((model) => (
+              <option key={model} value={model}>
+                {model}
+              </option>
+            ))
+          )}
+        </select>
+      </div>
+
+      <div className="form-control">
+        <label className="label">
+          <span className="label-text">Worker 2 API Provider</span>
+        </label>
+        <input
+          type="text"
+          value={api2Provider}
+          onChange={(e) => setApi2Provider(e.target.value)}
+          className="input input-bordered w-full"
+          placeholder="API Provider"
+        />
+      </div>
+
+      <div className="form-control">
+        <label className="label">
+          <span className="label-text">Worker 2 API Key</span>
+        </label>
+        <input
+          type="password"
+          value={apiKey2}
+          onChange={(e) => setApiKey2(e.target.value)}
+          className="input input-bordered w-full"
+          placeholder="API Key"
+        />
+      </div>
+
+      {/* Turn Settings */}
+      <div className="form-control">
+        <label className="label">
+          <span className="label-text">Number of Turns</span>
+        </label>
+        <input
+          type="number"
+          value={turns}
+          onChange={(e) => setTurns(Number(e.target.value))}
+          className="input input-bordered w-full"
+          min="1"
+        />
+      </div>
+
+      {/* Summary Settings */}
+      <div className="form-control">
+        <label className="label cursor-pointer">
+          <span className="label-text">Request Summary</span>
+          <input
+            type="checkbox"
+            checked={requestSummary}
+            onChange={(e) => setRequestSummary(e.target.checked)}
+            className="checkbox checkbox-primary"
           />
-          <ApiKeyForm
-            apiProvider={api2Provider}
-            setApiProvider={setApi2Provider}
-            apiKey={apiKey2}
-            setApiKey={setApiKey2}
-            apiProviders={apiProviders}
-            label="API Key 2 (Optional)"
-            ariaLabel="API Key 2"
+        </label>
+      </div>
+
+      <div className="form-control">
+        <label className="label">
+          <span className="label-text">Summary Model</span>
+        </label>
+        <select
+          value={summaryModel}
+          onChange={(e) => setSummaryModel(e.target.value)}
+          className="select select-bordered w-full"
+          disabled={isLoadingModels || availableModels.length === 0}
+        >
+          {isLoadingModels ? (
+            <option>Loading models...</option>
+          ) : availableModels.length === 0 ? (
+            <option>No models available</option>
+          ) : (
+            availableModels.map((model) => (
+              <option key={model} value={model}>
+                {model}
+              </option>
+            ))
+          )}
+        </select>
+      </div>
+
+      {/* Pause/Resume Settings */}
+      <div className="form-control">
+        <label className="label cursor-pointer">
+          <span className="label-text">Resume on Interjection</span>
+          <input
+            type="checkbox"
+            checked={resumeOnInterjection}
+            onChange={(e) => setResumeOnInterjection(e.target.checked)}
+            className="checkbox checkbox-primary"
           />
-        </section>
+        </label>
       </div>
     </div>
   );

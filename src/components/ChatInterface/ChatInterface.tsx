@@ -6,14 +6,17 @@ import { Settings, Folder, EyeIcon, Send, Pause, Play, ArrowDown10, UserCog } fr
 import LLMStatusIndicator, { LLMStatus } from "../LLMStatusIndicator/LLMStatusIndicator";
 import CollaborationSettings from "../Drawers/CollaborationSettings";
 import { checkOllamaConnection, fetchOllamaModels, generateOllamaResponse } from "../../services/ollamaServices";
+import { encoding_for_model } from "tiktoken";
 
 type ChatMessage = {
   id: number;
   senderName: string;
   role: "user" | "worker1" | "worker2";
   message: string;
-  time: string;
+  createdAt: string;
   footerText?: string;
+  type: "message" | "summary";
+  turn?: number;
 };
 
 const userBubbleColor = "info";
@@ -21,9 +24,9 @@ const worker1BubbleColor = "warning";
 const worker2BubbleColor = "success";
 
 const initialChatMessages: ChatMessage[] = [
-  { id: 2, senderName: "System User", role: "user", message: "One moment please...", time: "12:46", footerText: "Seen at 12:46" },
-  { id: 1, senderName: "Worker 1", role: "worker1", message: "Not much. Just waiting on the user...", time: "12:45", footerText: "Delivered" },
-  { id: 3, senderName: "Worker 2", role: "worker2", message: "Sup?", time: "12:47" },
+  { id: 1, senderName: "Worker 1", role: "worker1", message: "Not much. Just waiting on the user...", createdAt: "2025-04-20T12:45:00Z", footerText: "Delivered", type: "message" },
+  { id: 2, senderName: "System User", role: "user", message: "One moment please...", createdAt: "2025-04-20T12:46:00Z", footerText: "Seen at 12:46", type: "message" },
+  { id: 3, senderName: "Worker 2", role: "worker2", message: "Sup?", createdAt: "2025-04-20T12:47:00Z", type: "message" },
 ];
 
 interface ChatInterfaceProps {
@@ -42,7 +45,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [llmStatus, setLlmStatus] = useState<LLMStatus>("disconnected");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(true);
-
   const [worker1Name, setWorker1Name] = useState('Worker 1');
   const [worker1Model, setWorker1Model] = useState('');
   const [worker2Name, setWorker2Name] = useState('Worker 2');
@@ -53,18 +55,73 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [requestSummary, setRequestSummary] = useState(false);
   const [apiKey1, setApiKey1] = useState('');
   const [apiKey2, setApiKey2] = useState('');
+  const [resumeOnInterjection, setResumeOnInterjection] = useState(true);
+  const [summaryModel, setSummaryModel] = useState<string>('');
+
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const feedbackTimeoutRef = useRef<number | null>(null);
+  const nextIdRef = useRef(4);
+
+  // Token management setup
+  const MAX_TOKENS = 4000;
+  const tokenizer = encoding_for_model("gpt-3.5-turbo");
+
+  const countTokens = (text: string): number => {
+    try {
+      const encoded = tokenizer.encode(text);
+      return encoded.length;
+    } catch (error) {
+      console.error("Token counting failed:", error);
+      return text.length;
+    }
+  };
+
+  const truncateConversationHistory = (history: string): string => {
+    let tokenCount = countTokens(history);
+    if (tokenCount <= MAX_TOKENS) return history;
+
+    let truncatedHistory = history;
+    const lines = truncatedHistory.split("\n");
+
+    while (tokenCount > MAX_TOKENS && lines.length > 0) {
+      lines.shift();
+      truncatedHistory = lines.join("\n");
+      tokenCount = countTokens(truncatedHistory);
+    }
+
+    return truncatedHistory;
+  };
+
+  const generateId = () => {
+    const id = nextIdRef.current;
+    nextIdRef.current += 1;
+    return id;
+  };
+
+  const formatMessageTime = (isoString: string): string => {
+    const date = new Date(isoString);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
 
   useEffect(() => {
     const loadModels = async () => {
       setIsLoadingModels(true);
-      const models = await fetchOllamaModels();
-      console.log('Fetched models in ChatInterface:', models);
-      setAvailableModels(models);
-      if (models.length > 0) {
-        if (!worker1Model) setWorker1Model(models[0]);
-        if (!worker2Model) setWorker2Model(models[0]);
+      try {
+        const models = await fetchOllamaModels();
+        console.log('Fetched models in ChatInterface:', models);
+        const safeModels = Array.isArray(models) ? models : [];
+        setAvailableModels(safeModels);
+        if (safeModels.length > 0) {
+          if (!worker1Model) setWorker1Model(safeModels[0]);
+          if (!worker2Model) setWorker2Model(safeModels[0]);
+          if (!summaryModel) setSummaryModel(safeModels[0]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch Ollama models:', error);
+        setAvailableModels([]);
+      } finally {
+        setIsLoadingModels(false);
       }
-      setIsLoadingModels(false);
     };
     loadModels();
   }, []);
@@ -95,7 +152,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     switch (role) {
       case "user": return <UserCog size={iconSize} />;
       case "worker1": return <ArrowDown10 size={iconSize} />;
-      case "worker2": return <ArrowDown10 size={iconSize} />;
+      case "worker2": return <Play size={iconSize} />;
       default: return null;
     }
   };
@@ -117,13 +174,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (!trimmedInput) return;
 
     const userMessage: ChatMessage = {
-      id: messages.length + 1,
+      id: generateId(),
       senderName: "User",
       role: "user",
       message: trimmedInput,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      createdAt: new Date().toISOString(),
+      type: "message",
     };
-    setMessages((prevMessages: ChatMessage[]) => [userMessage, ...prevMessages]);
+    setMessages((prevMessages) => [...prevMessages, userMessage]);
     setInputValue("");
 
     if (isPaused) {
@@ -133,53 +191,127 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         setTempPlaceholder(undefined);
         feedbackTimeoutRef.current = null;
       }, 4000);
-      setIsPaused(false);
+      if (resumeOnInterjection) {
+        setIsPaused(false);
+      }
     }
 
-    let currentMessages = [...messages, userMessage];
     let conversationHistory = trimmedInput;
+    conversationHistory = truncateConversationHistory(conversationHistory);
 
     for (let turn = 1; turn <= turns; turn++) {
       const worker1Prompt = `You are ${worker1Name} (Worker 1). The user said: "${trimmedInput}". The conversation so far: "${conversationHistory}". Respond as Worker 1 in turn ${turn} of ${turns}.`;
-      const worker1Response = await generateOllamaResponse(worker1Model, worker1Prompt);
+      let worker1Response: string;
+      try {
+        const startTime = performance.now();
+        worker1Response = await generateOllamaResponse(worker1Model, worker1Prompt);
+        const duration = performance.now() - startTime;
+        console.log(`Worker 1 response time: ${duration.toFixed(2)}ms`);
+      } catch (error) {
+        console.error(`Worker 1 failed to respond:`, error);
+        worker1Response = `Failed to respond: ${error instanceof Error ? error.message : String(error)}`;
+        const errorMessage: ChatMessage = {
+          id: generateId(),
+          senderName: worker1Name,
+          role: "worker1",
+          message: worker1Response,
+          createdAt: new Date().toISOString(),
+          footerText: "Error",
+          type: "message",
+          turn,
+        };
+        setMessages((prevMessages) => [...prevMessages, errorMessage]);
+        continue;
+      }
+
       const worker1Message: ChatMessage = {
-        id: currentMessages.length + 1,
+        id: generateId(),
         senderName: worker1Name,
         role: "worker1",
         message: worker1Response,
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        createdAt: new Date().toISOString(),
+        type: "message",
+        turn,
       };
-      currentMessages = [worker1Message, ...currentMessages];
-      setMessages(currentMessages);
-      conversationHistory += `\n${worker1Name}: ${worker1Response}`;
+      setMessages((prevMessages) => [...prevMessages, worker1Message]);
+      conversationHistory += `\n${worker1Name}: """${worker1Response}"""`;
+      conversationHistory = truncateConversationHistory(conversationHistory);
 
       const worker2Prompt = `You are ${worker2Name} (Worker 2). The user said: "${trimmedInput}". The conversation so far: "${conversationHistory}". Respond as Worker 2 in turn ${turn} of ${turns}, building on Worker 1's response.`;
-      const worker2Response = await generateOllamaResponse(worker2Model, worker2Prompt);
+      let worker2Response: string;
+      try {
+        const startTime = performance.now();
+        worker2Response = await generateOllamaResponse(worker2Model, worker2Prompt);
+        const duration = performance.now() - startTime;
+        console.log(`Worker 2 response time: ${duration.toFixed(2)}ms`);
+      } catch (error) {
+        console.error(`Worker 2 failed to respond:`, error);
+        worker2Response = `Failed to respond: ${error instanceof Error ? error.message : String(error)}`;
+        const errorMessage: ChatMessage = {
+          id: generateId(),
+          senderName: worker2Name,
+          role: "worker2",
+          message: worker2Response,
+          createdAt: new Date().toISOString(),
+          footerText: "Error",
+          type: "message",
+          turn,
+        };
+        setMessages((prevMessages) => [...prevMessages, errorMessage]);
+        continue;
+      }
+
       const worker2Message: ChatMessage = {
-        id: currentMessages.length + 1,
+        id: generateId(),
         senderName: worker2Name,
         role: "worker2",
         message: worker2Response,
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        createdAt: new Date().toISOString(),
+        type: "message",
+        turn,
       };
-      currentMessages = [worker2Message, ...currentMessages];
-      setMessages(currentMessages);
-      conversationHistory += `\n${worker2Name}: ${worker2Response}`;
+      setMessages((prevMessages) => [...prevMessages, worker2Message]);
+      conversationHistory += `\n${worker2Name}: """${worker2Response}"""`;
+      conversationHistory = truncateConversationHistory(conversationHistory);
     }
 
     if (requestSummary) {
       const summaryPrompt = `Summarize the conversation: "${conversationHistory}".`;
-      const summaryModel = worker1Model;
-      const summaryResponse = await generateOllamaResponse(summaryModel, summaryPrompt);
+      const modelToUse = summaryModel || worker1Model;
+      let summaryResponse: string;
+      try {
+        const startTime = performance.now();
+        summaryResponse = await generateOllamaResponse(modelToUse, summaryPrompt);
+        const duration = performance.now() - startTime;
+        console.log(`Summary response time: ${duration.toFixed(2)}ms`);
+      } catch (error) {
+        console.error(`Summary failed:`, error);
+        summaryResponse = `Failed to summarize: ${error instanceof Error ? error.message : String(error)}`;
+        const errorMessage: ChatMessage = {
+          id: generateId(),
+          senderName: "Summary",
+          role: "worker1",
+          message: summaryResponse,
+          createdAt: new Date().toISOString(),
+          footerText: "Error",
+          type: "message",
+          turn: turns,
+        };
+        setMessages((prevMessages) => [...prevMessages, errorMessage]);
+        return;
+      }
+
       const summaryMessage: ChatMessage = {
-        id: currentMessages.length + 1,
+        id: generateId(),
         senderName: "Summary",
         role: "worker1",
         message: summaryResponse,
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        createdAt: new Date().toISOString(),
         footerText: "Conversation Summary",
+        type: "summary",
+        turn: turns,
       };
-      setMessages((prevMessages: ChatMessage[]) => [summaryMessage, ...prevMessages]);
+      setMessages((prevMessages) => [...prevMessages, summaryMessage]);
     }
   };
 
@@ -202,6 +334,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       apiKey2,
       turns,
       requestSummary,
+      resumeOnInterjection,
+      summaryModel,
     });
   };
 
@@ -215,7 +349,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     </button>
   );
 
-  const feedbackTimeoutRef = useRef<number | null>(null);
   useEffect(() => {
     return () => {
       if (feedbackTimeoutRef.current) {
@@ -224,35 +357,70 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 50;
+      if (isNearBottom) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      tokenizer.free();
+    };
+  }, []);
+
   return (
     <>
       <main
         className="flex flex-col items-center gap-4 m-auto justify-between w-full h-full p-1 bg-base-200"
-        data-component="ChatInterface" aria-label="Chat Interface" role="main"
+        data-component="ChatInterface"
+        aria-label="Chat Interface"
+        role="main"
       >
-        <section
-          className="flex flex-col-reverse gap-4 w-full max-w-4xl p-4 border border-dashed border-base-content/30 rounded mb-4 overflow-y-auto flex-grow"
-          aria-label="Chat History" role="log" aria-live="polite"
+        <div
+          ref={chatContainerRef}
+          className="flex flex-col gap-4 w-full max-w-4xl p-4 border border-dashed border-base-content/30 rounded mb-4 overflow-y-auto flex-grow"
+          aria-label="Chat History"
+          role="log"
+          aria-live="polite"
         >
-          {messages.map((msg: ChatMessage) => (
-            <ChatBubble
-              key={msg.id}
-              fontSize="0.90rem"
-              senderName={msg.senderName}
-              time={msg.time}
-              message={msg.message}
-              avatarIcon={getAvatarIcon(msg.role)}
-              footerText={msg.footerText}
-              isSender={msg.role === "user"}
-              bubbleColor={getBubbleColor(msg.role)}
-            />
-          ))}
-        </section>
+          {[...messages]
+            .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+            .map((msg, i, sortedMessages) => {
+              const prevRole = sortedMessages[i - 1]?.role;
+              const nextRole = sortedMessages[i + 1]?.role;
+              const isFirstInGroup = msg.role !== prevRole;
+              const isLastInGroup = msg.role !== nextRole;
+
+              return (
+                <ChatBubble
+                  key={msg.id}
+                  fontSize="0.90rem"
+                  senderName={msg.senderName}
+                  time={formatMessageTime(msg.createdAt)}
+                  message={msg.message}
+                  avatarIcon={getAvatarIcon(msg.role)}
+                  footerText={msg.footerText}
+                  isSender={msg.role === "user"}
+                  bubbleColor={getBubbleColor(msg.role)}
+                  isFirstInGroup={isFirstInGroup}
+                  isLastInGroup={isLastInGroup}
+                  type={msg.type}
+                  turn={msg.turn}
+                />
+              );
+            })}
+        </div>
 
         <form
           id="ChatInputContainer"
           className="flex flex-col items-center w-full max-w-4xl m-auto justify-center bg-zinc-800 rounded-sm p-4 z-10 flex-none"
-          aria-label="Chat Input Area" role="region"
+          aria-label="Chat Input Area"
+          role="region"
           onSubmit={(e) => {
             e.preventDefault();
             handleSendMessage();
@@ -261,7 +429,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <div
             id="ChatTextAreaInputContainer"
             className="flex flex-row w-full mb-2"
-            aria-label="Chat Text Input" role="group"
+            aria-label="Chat Text Input"
+            role="group"
           >
             <ChatTextAreaInput
               placeholder="Type your message..."
@@ -279,10 +448,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <nav
             id="ChatTextInputButtonContainer"
             className="flex flex-row items-center justify-between w-full"
-            aria-label="Chat Controls" role="navigation"
+            aria-label="Chat Controls"
+            role="navigation"
           >
             <div id="chat-settings-buttons" className="flex flex-row gap-2">
-              <label htmlFor={folderDrawerId} className="btn btn-sm btn-ghost drawer-button tooltip tooltip-top" data-tip="Browse Files" aria-label="Open Folder Drawer">
+              <label
+                htmlFor={folderDrawerId}
+                className="btn btn-sm btn-ghost drawer-button tooltip tooltip-top"
+                data-tip="Browse Files"
+                aria-label="Open Folder Drawer"
+              >
                 <Folder size={16} />
               </label>
               <SettingsDrawer
@@ -317,16 +492,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   apiKey2={apiKey2}
                   setApiKey2={setApiKey2}
                   isLoadingModels={isLoadingModels}
+                  resumeOnInterjection={resumeOnInterjection}
+                  setResumeOnInterjection={setResumeOnInterjection}
+                  summaryModel={summaryModel}
+                  setSummaryModel={setSummaryModel}
                 />
               </SettingsDrawer>
-              <label htmlFor={previewDrawerId} className="btn btn-sm btn-ghost drawer-button tooltip tooltip-top" data-tip="Preview Project" aria-label="Open Preview Drawer">
+              <label
+                htmlFor={previewDrawerId}
+                className="btn btn-sm btn-ghost drawer-button tooltip tooltip-top"
+                data-tip="Preview Project"
+                aria-label="Open Preview Drawer"
+              >
                 <EyeIcon size={16} />
               </label>
             </div>
-            <div id="llm-model-status-indicator" className="flex flex-row items-center justify-center flex-grow" role="region" aria-label="LLM Model Status">
+            <div
+              id="llm-model-status-indicator"
+              className="flex flex-row items-center justify-center flex-grow"
+              role="region"
+              aria-label="LLM Model Status"
+            >
               <LLMStatusIndicator status={llmStatus} />
             </div>
-            <div id="chat-action-buttons" className="flex flex-row gap-2 ml-auto" role="group" aria-label="Chat Actions">
+            <div
+              id="chat-action-buttons"
+              className="flex flex-row gap-2 ml-auto"
+              role="group"
+              aria-label="Chat Actions"
+            >
               <button
                 type="button"
                 className="btn btn-sm btn-ghost tooltip tooltip-top"

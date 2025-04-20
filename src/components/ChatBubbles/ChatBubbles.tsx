@@ -1,67 +1,59 @@
-// ..src/components/ChatBubbles/ChatBubbles.tsx
 import React from "react";
 
 interface ChatBubbleProps {
-  message: string;
+  fontSize: string;
   senderName: string;
   time: string;
+  message: string;
   avatarIcon: React.ReactNode;
-  isSender?: boolean;
   footerText?: string;
-  fontSize?: string;
-  bubbleColor?: string;
+  isSender: boolean;
+  bubbleColor: string;
+  isFirstInGroup: boolean;
+  isLastInGroup: boolean;
+  type: "message" | "summary";
+  turn?: number;
 }
 
 const ChatBubble: React.FC<ChatBubbleProps> = ({
-  message,
+  fontSize,
   senderName,
   time,
+  message,
   avatarIcon,
-  isSender = false,
   footerText,
-  fontSize,
+  isSender,
   bubbleColor,
+  isFirstInGroup,
+  isLastInGroup,
+  type,
+  turn,
 }) => {
-  const chatAlignment = isSender ? "chat-end" : "chat-start";
-  const bubbleClass = `chat-bubble ${
-    bubbleColor ? `chat-bubble-${bubbleColor}` : ""
-  }`;
-
+  const isSummary = type === "summary";
   return (
-    <section
-      className={`chat ${chatAlignment}`}
-      role="group"
-      aria-label={`Message from ${senderName}${isSender ? " (You)" : ""}`}
-      data-component="ChatBubble"
+    <div
+      className={`chat ${isSender ? 'chat-end' : 'chat-start'} ${isSummary ? 'mt-4' : 'mt-1'}`}
+      style={{ fontSize }}
     >
-      <div className="chat-image avatar placeholder">
-        <div className="rounded-full bg-zinc-800 text-zinc-400 p-3 flex items-center justify-center">
+      {isFirstInGroup && (
+        <div className="chat-header flex items-center gap-1">
           {avatarIcon}
+          <span>{senderName}</span>
+          {turn !== undefined && <span className="text-xs opacity-50">(Turn {turn})</span>}
+          <time className="text-xs opacity-50">{time}</time>
         </div>
-      </div>
-      <header className="chat-header" aria-label="Message Header">
-        {senderName}
-        <time
-          className="text-xs opacity-30 ml-1"
-          aria-label={`Sent at ${time}`}
-        >
-          {time}
-        </time>
-      </header>
-
+      )}
       <div
-        className={bubbleClass.trim()}
-        aria-label="Message Content"
-        style={{ fontSize: fontSize }}
+        className={`chat-bubble chat-bubble-${bubbleColor} ${isFirstInGroup ? 'rounded-t-lg' : ''} ${
+          isLastInGroup ? 'rounded-b-lg' : ''
+        } ${isSummary ? 'italic' : ''}`}
       >
         {message}
       </div>
-      {footerText && (
-        <footer className="chat-footer opacity-30" aria-label="Message Footer">
-          {footerText}
-        </footer>
+      {isLastInGroup && footerText && (
+        <div className="chat-footer opacity-50">{footerText}</div>
       )}
-    </section>
+    </div>
   );
 };
 
