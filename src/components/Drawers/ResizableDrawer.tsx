@@ -10,6 +10,7 @@ import {
 import CodeSubTabs from "./CodeSubTabs.tsx";
 import LivePreview from "./LivePreview.tsx";
 import MarkdownRenderer from "./MarkdownRenderer.tsx";
+import { MemoryChunk } from "../../collaborationTypes.ts";
 
 interface DrawerProps {
   id: string;
@@ -18,7 +19,7 @@ interface DrawerProps {
   className?: string;
   style?: React.CSSProperties;
   zIndex?: number;
-  markdownContent?: string;
+  strategicMemory?: MemoryChunk[]; // New prop for Strategic Memory
 }
 
 const MIN_WIDTH = 200;
@@ -54,7 +55,7 @@ const ResizableDrawer: React.FC<DrawerProps> = ({
   className,
   style,
   zIndex = 100,
-  markdownContent = sampleMarkdown,
+  strategicMemory = [], // Default to empty array
 }) => {
   const [htmlCode] = useState('<div id="root"></div>');
   const [cssCode] = useState(
@@ -110,6 +111,16 @@ const ResizableDrawer: React.FC<DrawerProps> = ({
     [drawerWidth, onMouseMove, onMouseUp]
   );
 
+  // Convert Strategic Memory chunks to Markdown
+  const strategicMemoryMarkdown = strategicMemory.length
+    ? `# Strategic Memory\n\n${strategicMemory
+        .map(
+          (chunk) =>
+            `**${chunk.timestamp}:** Summary: ${chunk.summary.replace(/\n/g, "\n\n")}`
+        )
+        .join("\n\n---\n\n")}`
+    : `# Strategic Memory\n\nNo strategic memory yet.`;
+
   const previewTabs: TabItem[] = [
     {
       id: "preview-code",
@@ -132,8 +143,8 @@ const ResizableDrawer: React.FC<DrawerProps> = ({
       content: (
         <div className="p-4 overflow-y-auto h-full bg-base-100 rounded-md">
           <MarkdownRenderer
-            markdownContent={markdownContent}
-            ariaLabel="Project Markdown Preview"
+            markdownContent={strategicMemoryMarkdown}
+            ariaLabel="Strategic Memory Markdown Preview"
           />
         </div>
       ),

@@ -1,4 +1,6 @@
-import { ChatMessage, MemoryChunk, MemorySystemState, CollaborationControlState, CollaborationState, CollaborationTask } from "../collaborationTypes";
+import { nanoid } from "nanoid"; // Import nanoid for unique message IDs
+import { ChatMessage, MemoryChunk, CollaborationControlState, CollaborationState, CollaborationTask } from "../collaborationTypes";
+import { fetchOllamaResponse } from "../services/ollamaServices"; // Import the new function
 
 export class CollaborationService {
   private state: CollaborationState;
@@ -85,7 +87,7 @@ export class CollaborationService {
       currentPhase: "processing",
     };
     const newMessage: ChatMessage = {
-      id: this.state.memory.workingMemory.length + 1,
+      id: nanoid(), // Now type-compatible (string)
       senderName: "User",
       role: "user",
       message,
@@ -135,7 +137,7 @@ export class CollaborationService {
   injectMessage(message: string) {
     console.log("Service: Injecting message:", message);
     const newMessage: ChatMessage = {
-      id: this.state.memory.workingMemory.length + 1,
+      id: nanoid(), // Now type-compatible (string)
       senderName: "User (Injection)",
       role: "user",
       message,
@@ -184,29 +186,49 @@ export class CollaborationService {
       const currentModel = isWorker1 ? this.state.control.currentModel : this.state.control.otherModel;
 
       try {
-        const response = `Response from ${senderName} using ${currentModel}`;
-        const newMessage: ChatMessage = {
-          id: this.state.memory.workingMemory.length + 1,
-          senderName,
-          role: "assistant",
-          message: response,
-          createdAt: new Date().toISOString(),
-          type: "message",
-        };
-        this.state = {
-          ...this.state,
-          memory: {
-            ...this.state.memory,
-            workingMemory: [...this.state.memory.workingMemory, newMessage],
-          },
-        };
+        const context = this.state.memory.workingMemory.map(msg => `${msg.senderName}: ${msg.message}`);
+        const { response, error } = await fetchOllamaResponse(currentModel, context);
+
+        if (error) {
+          const errorMessage: ChatMessage = {
+            id: nanoid(), // Now type-compatible (string)
+            senderName: "System",
+            role: "system",
+            message: `Error in ${senderName}: ${error}`,
+            createdAt: new Date().toISOString(),
+            type: "message",
+          };
+          this.state = {
+            ...this.state,
+            memory: {
+              ...this.state.memory,
+              workingMemory: [...this.state.memory.workingMemory, errorMessage],
+            },
+          };
+        } else {
+          const newMessage: ChatMessage = {
+            id: nanoid(), // Now type-compatible (string)
+            senderName,
+            role: "assistant",
+            message: response,
+            createdAt: new Date().toISOString(),
+            type: "message",
+          };
+          this.state = {
+            ...this.state,
+            memory: {
+              ...this.state.memory,
+              workingMemory: [...this.state.memory.workingMemory, newMessage],
+            },
+          };
+        }
         this.checkMemoryLimit();
         this.notifyUpdate();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
         console.error(`Error during turn ${turn}:`, errorMessage);
         const errorMsg: ChatMessage = {
-          id: this.state.memory.workingMemory.length + 1,
+          id: nanoid(), // Now type-compatible (string)
           senderName: "System",
           role: "system",
           message: `Error: ${senderName} failed - ${errorMessage}`,

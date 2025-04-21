@@ -1,25 +1,25 @@
-interface ChatMessage {
-  id: number;
+// collaborationTypes.ts
+
+export interface ChatMessage {
+  id: string; // Changed from number to string
   senderName: string;
   role: "user" | "assistant" | "system";
   message: string;
   createdAt: string;
-  footerText?: string;
-  type: "message" | "summary";
-  turn?: number;
+  type: "message";
 }
 
-interface MemoryChunk {
+export interface MemoryChunk {
+  timestamp: string;
   summary: string;
-  timestamp: string; // Changed to string to match CollaborationService
 }
 
-interface MemorySystemState {
+export interface MemorySystemState {
   workingMemory: ChatMessage[];
   strategicMemory: MemoryChunk[];
 }
 
-interface CollaborationControlState {
+export interface CollaborationControlState {
   currentTurn: number;
   totalTurns: number;
   currentModel: string;
@@ -29,17 +29,15 @@ interface CollaborationControlState {
   currentPhase: "idle" | "processing" | "awaitingInput";
 }
 
-interface CollaborationState {
+export interface CollaborationState {
   memory: MemorySystemState;
   control: CollaborationControlState;
 }
 
-interface CollaborationTask {
+export interface CollaborationTask {
   turns: number;
   worker1Model: string;
   worker2Model: string;
   worker1Name: string;
   worker2Name: string;
 }
-
-export type { ChatMessage, MemoryChunk, MemorySystemState, CollaborationControlState, CollaborationState, CollaborationTask };
