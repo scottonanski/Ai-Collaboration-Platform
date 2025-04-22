@@ -1,11 +1,15 @@
 {
-  "extends": "./tsconfig.json",
   "compilerOptions": {
     "composite": true,
-    "outDir": "./dist/node",
-    "declaration": true,
-    "declarationMap": true
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./types"
+    ]
   },
-  "include": ["vite.config.ts", "vitest.config.ts", "vitest.setup.ts"],
-  "exclude": ["node_modules"]
+  "include": ["vite.config.ts", "types"]
 }

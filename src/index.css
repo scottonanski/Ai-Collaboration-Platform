@@ -1,46 +1,50 @@
 @import "tailwindcss";
-@plugin "daisyui" {
+@plugin "daisyui";
 
-  /* Litte Hack to Fix Element from creating scroll gutters */
-  exclude: rootscrollgutter;
-}
 
 @plugin "daisyui/theme" {
-  name: "system-default-theme";
-  default: true;
-  prefersdark: true;
+  name: "business";
+  default: false;
+  prefersdark: false;
   color-scheme: "dark";
-  --color-base-100: oklch(26% 0.007 34.298);
-  --color-base-200: oklch(20% 0 0);
-  --color-base-300: oklch(26% 0 0);
-  --color-base-content: oklch(97% 0 0);
-  --color-primary:oklch(0.45 0.1 266.29);
-  --color-primary-content: oklch(97% 0.014 308.299);
-  --color-secondary: oklch(0.8 0.1 266.29);
-  --color-secondary-content: oklch(96% 0.018 272.314);
-  --color-accent: oklch(66% 0.179 58.318);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(20% 0 0);
-  --color-neutral-content: oklch(98% 0 0);
-  --color-info: oklch(0.4 0.1 266.29);
-  --color-info-content: oklch(98% 0.019 200.873);
-  --color-success: oklch(0.39 0.119 151.328);
-  --color-success-content: oklch(98% 0.018 155.826);
-  --color-warning: oklch(0.63 0.1559 70.08);
-  --color-warning-content: oklch(98% 0.016 73.684);
-  --color-error: oklch(50% 0.213 27.518);
-  --color-error-content: oklch(97% 0.013 17.38);
-  --radius-selector: 0.25rem;
+  --color-base-100: oklch(24.353% 0 0);
+  --color-base-200: oklch(22.648% 0 0);
+  --color-base-300: oklch(20.944% 0 0);
+  --color-base-content: oklch(84.87% 0 0);
+  --color-primary: oklch(41.703% 0.099 251.473);
+  --color-primary-content: oklch(88.34% 0.019 251.473);
+  --color-secondary: oklch(64.092% 0.027 229.389);
+  --color-secondary-content: oklch(12.818% 0.005 229.389);
+  --color-accent: oklch(67.271% 0.167 35.791);
+  --color-accent-content: oklch(13.454% 0.033 35.791);
+  --color-neutral: oklch(27.441% 0.013 253.041);
+  --color-neutral-content: oklch(85.488% 0.002 253.041);
+  --color-info: oklch(62.616% 0.143 240.033);
+  --color-info-content: oklch(12.523% 0.028 240.033);
+  --color-success: oklch(70.226% 0.094 156.596);
+  --color-success-content: oklch(14.045% 0.018 156.596);
+  --color-warning: oklch(77.482% 0.115 81.519);
+  --color-warning-content: oklch(15.496% 0.023 81.519);
+  --color-error: oklch(51.61% 0.146 29.674);
+  --color-error-content: oklch(90.322% 0.029 29.674);
+  --radius-selector: 0rem;
   --radius-field: 0.25rem;
   --radius-box: 0.25rem;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
-  --border: 0.5px;
+  --border: 1px;
   --depth: 0;
   --noise: 0;
-  --bubble-User: oklch(0.35 0.1 266.29);
 }
+
+
+/* Styles for mockup-code line numbers */
 .mockup-code pre span:nth-child(1) {
-  margin-left: -1.112rem!important;
+  margin-left: -1.112rem !important;
   padding-left: 0 !important;
+}
+
+/* Utility class for preserving whitespace */
+.whitespace-pre-wrap {
+  white-space: pre-wrap;
 }

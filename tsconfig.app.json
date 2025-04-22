@@ -1,11 +1,16 @@
 {
-  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "composite": true,
-    "outDir": "./dist/node",
-    "declaration": true,
-    "declarationMap": true
+    "target": "ES2020",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "bundler", // Change to "bundler"
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true
   },
-  "include": ["vite.config.ts", "vitest.config.ts", "vitest.setup.ts"],
-  "exclude": ["node_modules"]
+  "include": ["src"]
 }
