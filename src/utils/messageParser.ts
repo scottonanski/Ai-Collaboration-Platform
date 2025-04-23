@@ -1,76 +1,110 @@
-export type MessagePart =
-  | { type: 'text'; content: string }
-  | { type: 'bold'; content: string }
-  | { type: 'inlineCode'; content: string }
-  | { type: 'code'; language: string; code: string };
+import { MessagePart } from '../collaborationTypes';
 
-export const parseBotMessage = (message: string): MessagePart[] => {
+// Regular expression to find code blocks (complete or incomplete)
+// Group 1: Language (optional)
+// Group 2: Code content (complete block)
+// Group 3: Language (optional, incomplete block)
+// Group 4: Code content (incomplete block)
+const codeBlockRegex = /```(\w+)?\n?([\s\S]*?)```|```(\w+)?\n?([\s\S]*)$/g;
+
+export function parseBotMessage(message: string): MessagePart[] {
   const parts: MessagePart[] = [];
-  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```|([^`]+)/g;
-  let remainingMessage = message;
+  let lastIndex = 0;
   let match;
 
+  // Reset regex state
+  codeBlockRegex.lastIndex = 0;
+
   while ((match = codeBlockRegex.exec(message)) !== null) {
-    if (match[3]) {
-      let text = match[3].trim();
-      if (text) {
-        // First, parse inline code (e.g., `text`)
-        const inlineCodeRegex = /`([^`]+)`|([^`]+)/g;
-        let textRemaining = text;
-        let inlineMatch;
+    const fullMatch = match[0];
+    const startIndex = match.index;
 
-        while ((inlineMatch = inlineCodeRegex.exec(text)) !== null) {
-          if (inlineMatch[1]) {
-            // Inline code (e.g., `text`)
-            const inlineCodeContent = inlineMatch[1].trim();
-            if (inlineCodeContent) {
-              parts.push({ type: 'inlineCode', content: inlineCodeContent });
-            }
-          } else if (inlineMatch[2]) {
-            // Text that might contain bold sections
-            const subText = inlineMatch[2];
-            // Parse bold sections within this text (e.g., **bold**)
-            const boldRegex = /\*\*([^\*]+)\*\*|([^\*]+)/g;
-            let subTextRemaining = subText;
-            let boldMatch;
-
-            while ((boldMatch = boldRegex.exec(subText)) !== null) {
-              if (boldMatch[1]) {
-                const boldContent = boldMatch[1].trim();
-                if (boldContent) {
-                  parts.push({ type: 'bold', content: boldContent });
-                }
-              } else if (boldMatch[2]) {
-                const regularText = boldMatch[2].trim();
-                if (regularText) {
-                  parts.push({ type: 'text', content: regularText });
-                }
-              }
-              subTextRemaining = subTextRemaining.slice(boldMatch.index + boldMatch[0].length);
-            }
-
-            if (subTextRemaining.trim()) {
-              parts.push({ type: 'text', content: subTextRemaining.trim() });
-            }
-          }
-          textRemaining = textRemaining.slice(inlineMatch.index + inlineMatch[0].length);
-        }
-
-        if (textRemaining.trim()) {
-          parts.push({ type: 'text', content: textRemaining.trim() });
-        }
+    // Add preceding text part if any
+    if (startIndex > lastIndex) {
+      const textContent = message.substring(lastIndex, startIndex);
+      if (textContent.trim()) {
+        parts.push({ type: 'text', content: textContent });
       }
-    } else {
-      const language = match[1] || 'text';
-      const code = match[2] ? match[2].trim() : '';
-      parts.push({ type: 'code', language, code });
     }
-    remainingMessage = remainingMessage.slice(match.index + match[0].length);
+
+    // Check if it's a complete or incomplete code block
+    if (match[2] !== undefined) { // Complete code block (Group 2 has content)
+      parts.push({
+        type: 'code',
+        language: match[1] || '',
+        code: match[2].trimEnd(), // Trim trailing whitespace/newlines from code
+      });
+    } else if (match[4] !== undefined) { // Incomplete code block (Group 4 has content)
+      parts.push({
+        type: 'incompleteCode',
+        language: match[3] || '',
+        code: match[4],
+      });
+    }
+
+    lastIndex = startIndex + fullMatch.length;
   }
 
-  if (remainingMessage.trim()) {
-    parts.push({ type: 'text', content: remainingMessage.trim() });
+  // Add remaining text part if any
+  if (lastIndex < message.length) {
+    const textContent = message.substring(lastIndex);
+    if (textContent.trim() || parts.length === 0) { // Add if not empty or if it's the only content
+        parts.push({ type: 'text', content: textContent });
+    }
+  }
+
+  // If the message is empty or only whitespace, ensure at least one empty text part
+  if (parts.length === 0 && message.trim().length === 0) {
+      parts.push({ type: 'text', content: message });
   }
 
   return parts;
-};
+}
+
+// Helper function remains the same if needed elsewhere, but ChatMessage won't use it directly for paragraphs
+export function groupIntoParagraphs(parts: MessagePart[]): MessagePart[][] {
+    const paragraphs: MessagePart[][] = [];
+    let currentParagraph: MessagePart[] = [];
+
+    parts.forEach((part, index) => {
+        if (part.type === 'code' || part.type === 'incompleteCode') {
+            // If there's content in the current paragraph, push it
+            if (currentParagraph.length > 0) {
+                paragraphs.push([...currentParagraph]);
+                currentParagraph = [];
+            }
+            // Push the code block as its own paragraph
+            paragraphs.push([part]);
+        } else {
+            // Add text parts to the current paragraph
+            // Split text content by double newlines to respect paragraph breaks in markdown
+            const textParagraphs = part.content.split(/\n\s*\n/);
+            textParagraphs.forEach((textPara: string, paraIndex: number) => {
+                if (textPara.trim()) {
+                    currentParagraph.push({ type: 'text', content: textPara });
+                }
+                // If this is not the last text paragraph generated by the split,
+                // and there are more parts or this isn't the last split part,
+                // it signifies a paragraph break, so push the current paragraph.
+                if (paraIndex < textParagraphs.length - 1) {
+                    if (currentParagraph.length > 0) {
+                        paragraphs.push([...currentParagraph]);
+                        currentParagraph = [];
+                    }
+                }
+            });
+        }
+
+        // If it's the last part and there's content in the current paragraph, push it
+        if (index === parts.length - 1 && currentParagraph.length > 0) {
+            paragraphs.push([...currentParagraph]);
+        }
+    });
+
+    // If the input was empty or only whitespace, ensure one paragraph with one empty text part
+    if (parts.length === 1 && parts[0].type === 'text' && parts[0].content.trim().length === 0 && paragraphs.length === 0) {
+        paragraphs.push([{ type: 'text', content: parts[0].content }]);
+    }
+
+    return paragraphs;
+}

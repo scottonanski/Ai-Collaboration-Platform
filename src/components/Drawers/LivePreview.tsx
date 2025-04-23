@@ -30,7 +30,6 @@ const LivePreview: React.FC<LivePreviewProps> = ({ htmlCode, cssCode, jsCode, is
       esbuildInitialized.current = true;
       initializeEsbuild()
         .then(() => {
-          console.log('esbuild initialized successfully.');
           setIsEsbuildInitialized(true);
         })
         .catch((err) => {
@@ -71,24 +70,30 @@ const LivePreview: React.FC<LivePreviewProps> = ({ htmlCode, cssCode, jsCode, is
         <body>
           ${sanitizedHtml}
           <script>
-            window.onerror = (msg, url, line, col, error) => {
-              console.error('onerror:', { msg, url, line, col, error });
-              const message = error ? error.stack || error.message : String(msg);
-              parent.postMessage({ type: 'error', message: \`[onerror] \${message}\` }, '*');
-              return true;
-            };
-            window.addEventListener('unhandledrejection', event => {
-              console.error('unhandledrejection:', event.reason);
-              parent.postMessage({ type: 'error', message: \`[unhandledrejection] \${event.reason?.message || String(event.reason)}\` }, '*');
-              event.preventDefault();
-            });
-            ${jsCode}
+            // Vanilla JS implementation for Live Preview
+            const root = document.getElementById('root');
+            let count = 0;
+            
+            function render() {
+              root.innerHTML = \`
+                <h1>Live Preview Counter</h1>
+                <p>Count: \${count}</p>
+                <button id="incBtn">Increment</button>
+              \`;
+              document.getElementById('incBtn').onclick = () => {
+                count++;
+                render();
+              };
+            }
+            
+            render();
           </script>
         </body>
       </html>
     `;
 
     setSrcDoc(newSrcDoc);
+
     console.timeEnd('updatePreview');
   }, [htmlCode, cssCode, jsCode]);
 
@@ -136,7 +141,7 @@ const LivePreview: React.FC<LivePreviewProps> = ({ htmlCode, cssCode, jsCode, is
             ref={iframeRef}
             srcDoc={srcDoc}
             title="Live Preview"
-            sandbox="allow-scripts allow-same-origin"
+            sandbox="allow-scripts"
             style={{
               position: 'absolute',
               top: 0,

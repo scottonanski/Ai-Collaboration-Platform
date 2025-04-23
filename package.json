@@ -30,7 +30,8 @@
     "remark-gfm": "^4.0.1",
     "tailwindcss": "^4.1.4",
     "tiktoken": "^1.0.20",
-    "vite-plugin-wasm": "^3.4.1"
+    "vite-plugin-wasm": "^3.4.1",
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",

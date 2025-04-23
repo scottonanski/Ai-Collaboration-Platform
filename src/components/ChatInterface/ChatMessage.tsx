@@ -1,8 +1,10 @@
-import React from 'react';
-import { ChatMessage as ChatMessageType } from '../../collaborationTypes';
-import { parseBotMessage, MessagePart } from '../../utils/messageParser';
+import React, { useEffect, useState, useRef } from 'react';
+import { ChatMessage as ChatMessageType, MessagePart } from '../../collaborationTypes';
+import { parseBotMessage, groupIntoParagraphs } from '../../utils/messageParser';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { androidstudio } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -10,112 +12,139 @@ interface ChatMessageProps {
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const isBot = message.role === 'assistant';
-  const parts: MessagePart[] = isBot
-    ? parseBotMessage(message.message)
-    : [{ type: 'text', content: message.message }];
+  const [showCursor, setShowCursor] = useState(true);
+  const cursorRef = useRef<number | null>(null);
 
-  // Group parts into paragraphs by splitting on newlines
-  const paragraphs: MessagePart[][] = [];
-  let currentParagraph: MessagePart[] = [];
-
-  parts.forEach((part) => {
-    if (part.type === 'text' && part.content.includes('\n')) {
-      const lines = part.content.split('\n');
-      lines.forEach((line, index) => {
-        if (line.trim()) {
-          currentParagraph.push({ type: 'text', content: line.trim() });
-        }
-        if (index < lines.length - 1) {
-          if (currentParagraph.length > 0) {
-            paragraphs.push([...currentParagraph]);
-            currentParagraph = [];
-          }
-        }
-      });
-    } else if (part.type === 'code') {
-      if (currentParagraph.length > 0) {
-        paragraphs.push([...currentParagraph]);
-        currentParagraph = [];
-      }
-      paragraphs.push([part]);
+  useEffect(() => {
+    if (message.streaming) {
+      const intervalId = setInterval(() => {
+        setShowCursor(prev => !prev);
+      }, 500); // Blink speed
+      return () => clearInterval(intervalId);
     } else {
-      currentParagraph.push(part);
+      setShowCursor(false);
     }
-  });
+  }, [message.streaming]);
 
-  if (currentParagraph.length > 0) {
-    paragraphs.push([...currentParagraph]);
-  }
+  const parts = parseBotMessage(message.message);
+  const paragraphs = groupIntoParagraphs(parts);
+
+  useEffect(() => {
+    console.log("ChatMessage Props:", { message });
+    console.log("Parsed Parts:", parts);
+    console.log("Grouped Paragraphs:", paragraphs);
+  }, [message, parts, paragraphs]);
+
+  useEffect(() => {
+    if (message.role === 'assistant' && message.message.includes('* **')) {
+      console.log("--- Bot Message with potential list ---");
+      console.log("Raw Content:\n", message.message);
+      console.log("Parsed Parts:", parts);
+      console.log("Grouped Paragraphs:", paragraphs);
+      message.message.split('\n').forEach((line: string, index: number) => {
+          console.log(`Line ${index}:`, JSON.stringify(line));
+      });
+      console.log("---------------------------------------");
+    }
+  }, [message, parts, paragraphs]);
+
+  // Helper to get badge style and title based on role
+  const getRoleStyle = (role: 'user' | 'assistant' | 'system') => {
+    switch (role) {
+      case 'user':
+        return { title: 'User', badgeClass: 'badge-primary' };
+      case 'assistant': // Assuming Assistant is Worker 1
+        return { title: 'Worker 1', badgeClass: 'badge-success' };
+      case 'system': // Assuming System is Worker 2
+        return { title: 'Worker 2', badgeClass: 'badge-warning text-gray-900' }; // Added dark text for warning
+      default:
+        return { title: 'Unknown', badgeClass: 'badge-ghost' };
+    }
+  };
+
+  const { title, badgeClass } = getRoleStyle(message.role);
 
   return (
-    <div
-      className={`chat ${message.role === 'user' ? 'chat-end' : message.role === 'system' ? 'chat-start' : 'chat-middle'}`}
-      role="article"
-      aria-label={`${message.senderName} message`}
-    >
-      <div className="chat-header text-sm text-gray-500 mb-3">
-        {message.senderName}{' '}
-        <span
-          className="tooltip"
-          data-tip={new Date(message.createdAt).toLocaleString()}
-        >
-          ({new Date(message.createdAt).toLocaleTimeString()})
-        </span>
+    <div className="w-full py-3 px-4"> 
+      {/* Role Label Badge */} 
+      <div className="mb-1">
+        <span className={`badge badge-xs ${badgeClass}`}>{title}</span>
       </div>
-      <div className="chat-bubble p-6 rounded-lg whitespace-pre-wrap break-words text-gray-200">
-        {paragraphs.map((paragraph, index) => (
-          <div key={index} className="mb-2 last:mb-0">
-            {paragraph.length === 1 && paragraph[0].type === 'code' ? (
-              <div
-                className="mockup-code my-4 rounded-lg text-left bg-[#1a1a1a] overflow-hidden"
-              >
-                <SyntaxHighlighter
-                  language={paragraph[0].language === 'text' ? 'plaintext' : paragraph[0].language}
-                  style={androidstudio}
-                  wrapLines={true}
-                  wrapLongLines={true}
-                  customStyle={{
-                    paddingLeft: '2rem',
-                    paddingTop: '1rem',
-                    paddingBottom: '1rem',
-                    margin: 0,
-                    fontSize: '0.875rem',
-                    background: 'transparent',
-                  }}
-                  role="region"
-                  aria-label={`Code block in ${paragraph[0].language || 'unknown'}`}
-                >
-                  {typeof paragraph[0].code === 'string' ? paragraph[0].code.trim() : '[Code block incomplete]'}
-                </SyntaxHighlighter>
-              </div>
-            ) : (
-              <p>
-                {paragraph.map((part, i) => {
-                  if (part.type === 'text') {
-                    return <span key={i}>{part.content}</span>;
-                  } else if (part.type === 'bold') {
-                    return (
-                      <strong key={i} className="font-bold">
-                        {part.content}
-                      </strong>
-                    );
-                  } else if (part.type === 'inlineCode') {
-                    return (
-                      <code
-                        key={i}
-                        className="bg-gray-700 text-gray-100 px-1 rounded font-mono text-sm"
+      {/* Message Content Area */} 
+      <div className="w-full rounded-lg whitespace-pre-wrap break-words text-gray-200 bg-neutral p-4"> 
+        {paragraphs.map((paragraph: MessagePart[], index: number) => {
+          const isSinglePartParagraph = paragraph.length === 1;
+          const part = isSinglePartParagraph ? paragraph[0] : null;
+          const isCodeBlock = part && (part.type === 'code' || part.type === 'incompleteCode');
+
+          return (
+            <div key={index} className="mb-2 last:mb-0">
+              {isCodeBlock ? (
+                (() => {
+                  const codePart = part as Extract<MessagePart, { type: 'code' | 'incompleteCode' }>;
+                  const codeContent = codePart.code || '';
+                  const language = codePart.language || 'plaintext';
+
+                  return (
+                    <div
+                      className="mockup-code max-w-5xl mx-auto my-2 rounded-lg text-left bg-[#1a1a1a] overflow-hidden"
+                    >
+                      <SyntaxHighlighter
+                        language={language === 'text' ? 'plaintext' : language}
+                        style={androidstudio}
+                        wrapLines={true}
+                        wrapLongLines={true}
+                        customStyle={{
+                          paddingLeft: '2rem',
+                          paddingTop: '1rem',
+                          paddingBottom: '1rem',
+                          margin: 0,
+                          fontSize: '0.875rem',
+                          background: 'transparent',
+                        }}
+                        role="region"
+                        aria-label={`Code block in ${language || 'unknown'}`}
                       >
-                        {part.content}
-                      </code>
-                    );
-                  }
-                  console.warn("Unknown message part type in paragraph:", part);
-                  return null;
-                })}
-              </p>
-            )}
-          </div>
-        ))}
+                        {codeContent.trimEnd()} 
+                      </SyntaxHighlighter>
+                      {message.streaming && part.type === 'incompleteCode' && (
+                        <div style={{ padding: '1rem 2rem', color: '#bbb' }}>
+                          <span>Receiving code...</span>
+                          <span className={`ml-1 transition-opacity duration-300 ${showCursor ? 'opacity-100' : 'opacity-0'}`}>|</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()
+              ) : (
+                <div> 
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      p: ({ node, ...props }) => <p style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }} {...props} />,
+                      li: ({ node, ...props }) => <li style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }} {...props} />,
+                      code: ({ node, className, children, ...props }) => {
+                        const match = /language-(\w+)/.exec(className || '');
+                        const isInline = !match; 
+
+                        if (isInline) {
+                          return <code className={className} style={{ overflowWrap: 'break-word', wordBreak: 'break-all', whiteSpace: 'normal' }} {...props}>{children}</code>;
+                        }
+                        return <code className={className} {...props}>{children}</code>;
+                      },
+                      a: ({ node, ...props }) => <a style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }} {...props} />,
+                    }}
+                  >
+                    {paragraph.filter(p => p.type === 'text').map(p => p.content).join('')}
+                  </ReactMarkdown>
+                  {message.streaming && index === paragraphs.length - 1 && !isCodeBlock && (
+                    <span className={`ml-1 transition-opacity duration-300 ${showCursor ? 'opacity-100' : 'opacity-0'}`}>|</span>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

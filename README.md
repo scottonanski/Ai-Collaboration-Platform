@@ -35,143 +35,69 @@ To get started with the project, follow these steps:
 
 ---
 
-## Comprehensive Review of the Codebase (Verified Against Provided Files)
-
-### Overview of the App
-
-The codebase represents a React-based web application designed to facilitate and observe collaboration between two AI workers (powered by Ollama models). The primary goals are to process user inputs, maintain a conversation history (working memory), generate summaries (strategic memory), and allow user interaction and control over the process. The app features a central chat interface, drawers for settings, file management (using placeholder data), and code/live previews (partially functional, using placeholder/static content). It utilizes Tailwind CSS and DaisyUI for styling, React with TypeScript for the frontend logic, and integrates with a local Ollama server for AI model inference.
-
-### Core Functionality Detailed
-
-1. **Chat Interface (**`ChatInterface.tsx`**)**:
-
-   - Serves as the main application component, orchestrating the user experience and interaction with the `CollaborationService`.
-   - Manages the display of the application state received from `CollaborationService`, tracking working memory (recent messages) and strategic memory (summaries) within `CollaborationState`.
-   - Handles user input for initiating collaboration and injecting messages during pauses.
-   - Provides UI controls for pausing/resuming the collaboration, opening the settings drawer (`SettingsDrawer`), and toggling side drawers for file management (`FolderDrawer`) and previews (`ResizableDrawer`).
-   - Displays status information, such as Ollama connection status (`ollamaStatus` state) and the current phase of the collaboration (`statusMessage` derived state).
-   - Loads and potentially triggers saving of state via `CollaborationStateManager` from the `utils` directory.
-
-2. **Collaboration Logic (**`CollaborationService.tsx`**)**:
-
-   - Acts as the engine for the AI collaboration, managing turns, model selection, and memory state internally.
-   - Executes the turn-based collaboration loop: alternates between workers, constructs context from working memory, calls the Ollama API via `fetchOllamaResponse`, and updates the application state via the `updateCallback`.
-   - Includes a mechanism (`checkMemoryLimit`, `compressMemory`) to compress working memory into strategic memory chunks when it exceeds a threshold (10 messages). *Note: The current compression logic is very basic (string concatenation and truncation).*
-   - Implements functionalities for pausing (`shouldPause` flag), resuming (`shouldResume` flag), and injecting user messages (`injectMessage` method) into a paused collaboration.
-
-3. **Ollama Integration (**`ollamaServices.tsx`**)**:
-
-   - Provides functions to interact with a local Ollama server (hardcoded URL: `http://localhost:11434`).
-   - Includes `checkOllamaConnection` to verify server availability, `fetchOllamaModels` to list available models, and `fetchOllamaResponse` to send prompts/context and receive generated text.
-   - `fetchOllamaResponse` incorporates basic retry logic for API calls.
-
-4. **Drawers and Previews**:
-
-   - **Folder Drawer (**`FolderDrawer.tsx`**)**: Displays a project file structure using `FileTree.tsx` and `FileTreeNode.tsx`. **Crucially, it currently uses static** `placeholderTreeData` **and is not connected to any real file system.** The `sidebarItems` prop passed in `App.tsx` is not declared or used in `FolderDrawer.tsx`.
-   - **Resizable Drawer (**`ResizableDrawer.tsx`**)**: A multi-purpose preview panel toggled by the `ScanEye` icon's `label` in `ChatInterface`. It contains:
-     - **Code Tab (**`CodeSubTabs.tsx`**)**: Displays tabs for HTML, CSS, and JS, but **renders static placeholder code** (`<!-- No HTML here yet... -->`, etc.) within `MockupCode` components. It is not connected to the file tree or AI output.
-     - **Live Preview (**`LivePreview.tsx`**)**: Aims to render HTML/CSS/JS code interactively in an iframe. **It currently ignores the** `htmlCode`**,** `cssCode`**,** `jsCode` **props passed to it.** Instead, its internal `updatePreview` function generates `srcDoc` based on hardcoded HTML, CSS, and a particle animation JavaScript demo. `ResizableDrawer` passes example React code in its *own* state to these props, but `LivePreview` does not use them. Initializes `esbuild-wasm`.
-     - **Markdown Tab (**`MarkdownRenderer.tsx`**)**: Correctly displays the contents of the strategic memory (passed via the `strategicMemory` prop from `ChatInterface` to `ResizableDrawer`), formatted as Markdown.
-
-5. **Settings (**`SettingsDrawer.tsx` **and** `CollaborationSettings.tsx`**)**:
-
-   - Provides a modal/drawer interface for users to configure the collaboration parameters.
-   - Allows setting names, models, API providers (Ollama/OpenAI options shown, but only Ollama fetch is implemented), and API keys (password fields) for both `worker1` and `worker2`.
-   - Includes inputs for the number of collaboration turns and toggles for features like summary requests and resuming collaboration after user injection. A `summaryModel` can also be selected if `requestSummary` is true.
-   - Utilizes `ApiKeyForm.tsx` and `WorkerForm.tsx` as sub-components.
-
-6. **Memory Management (**`MemoryController.ts`**)**:
-
-   - Contains static utility functions: `getContext` for formatting context strings (using strategic and recent working memory) and `compress` for the basic (non-LLM) memory compression logic used by `CollaborationService`.
-
-7. **State Persistence (**`utils/CollaborationStateManager.ts`**)**:
-
-   - Provides simple object-based functions (`save`, `load`, `clear`) for interacting with `localStorage` under the key `"collaborationState"`. Used by `ChatInterface` during mount/initialization. *Note: A duplicate class-based file exists at* `src/services/CollaborationStateManager.ts` *which seems unused based on imports.*
-
-8. **UI Components**:
-
-   - **Chat Messages (**`ChatMessage.tsx`**)**: Renders individual messages in the chat history. Previously used `dangerouslySetInnerHTML` with inadequate sanitization, but this has been fixed to render messages as plain text for improved security.
-   - `ChatBubbles.tsx`: Exists but appears unused in the main `ChatInterface` flow.
-   - `Button.tsx`, `LLMStatusIndicator.tsx`, `TabbedGroup.tsx`: Reusable UI components functioning as described.
-   - `FileTreeNode.tsx`: Displays individual file/folder nodes with appropriate icons, handling nesting and expand/collapse state for folders.
-
-### Current State Assessment (Verified)
-
-- **What Works**:
-
-  - Core chat loop: Initiation, turn-based AI responses via Ollama, display in `ChatInterface`.
-  - Pause, Resume, Inject Message functionalities in `CollaborationService` are implemented.
-  - Settings Drawer: Configuration of workers, turns, models, summary options is possible and reflected in `ChatInterface` state.
-  - Ollama connection check and model fetching.
-  - Basic state persistence to `localStorage` via `utils/CollaborationStateManager`.
-  - Drawers (`FolderDrawer`, `ResizableDrawer`) toggle correctly.
-  - Markdown rendering of (basic) strategic memory in the preview drawer.
-  - Input disabling/placeholder changes based on Ollama status and collaboration state.
-  - Security fix in `ChatMessage.tsx` to remove unsafe HTML rendering.
-
-- **What Needs Improvement / Confirmed Issues**:
-
-  - **Live Preview (**`LivePreview.tsx`**) is not functional:** It displays a hardcoded demo, completely ignoring the `htmlCode`, `cssCode`, `jsCode` props intended to provide dynamic content.
-  - **Code Tabs (**`CodeSubTabs.tsx`**) show only placeholders:** Not connected to any dynamic code source (file system or AI output).
-  - **File Tree (**`FolderDrawer.tsx`**,** `FileTree.tsx`**) is static:** Uses hardcoded `placeholderTreeData`, no real file system interaction.
-  - **Memory Compression is rudimentary:** The `compressMemory` logic does not perform actual summarization, only basic string joining/truncation.
-  - `CollaborationStateManager` **Duplication:** Two files (`utils/` and `services/`) exist for state management, only the `utils` version appears imported by `ChatInterface`. This is confusing and potentially problematic.
-  - **Hardcoded Ollama URL:** Found in `ollamaServices.tsx`.
-  - **Unused Code:** `ChatBubbles.tsx` seems unused by `ChatInterface`. The `sidebarItems` prop in `App.tsx` is unused by `FolderDrawer`. `StrategicMemoryChunkComponent.tsx` exists but isn't used in the main chat log rendering loop of `ChatInterface`.
-
-### Possible Avenues for Future Development (Remain Valid)
-
-1. **Fix & Enhance Previews**: *Priority 1:* Fix `LivePreview.tsx` to render dynamic content from props. Connect `CodeSubTabs.tsx` to a file source.
-2. **Implement File System Integration**: Connect `FolderDrawer` to a real or virtual file system.
-3. **Improve Memory Summarization**: Implement LLM-based summarization.
-4. **Refine Collaboration Features**: Explore collaborative editing, AI code review, etc.
-5. **UI/UX Polish**: Loading indicators, error display improvements, accessibility audit.
-6. **Robustness & Stability**: Consolidate `CollaborationStateManager`, improve error handling, expand test coverage.
-7. **Advanced Features**: Tool use, streaming responses, multi-user support.
-8. **Performance**: Standard React optimizations (`memo`, `useCallback`, etc.).
+Okay, here is a new `README.md` formatted as an executive summary, reflecting the current state based on the codebase provided and outlining the next steps.
 
 ---
 
-## Addressing AI Development Challenges (Crucial Context - Remains Valid)
+# README.md
 
-The previous report's emphasis on the challenges of using AI for development and the imperative rules to prevent breaking changes remains highly relevant and crucial for this project's stability. Key points reinforced:
+## Project Collaboration: Status & Roadmap
 
-- **No Unsolicited Fundamental Changes.**
-- **Explicit Instructions & Constraints.**
-- **Incremental Implementation.**
-- **Mandatory Human Review.**
-- **Leverage Version Control.**
-- **Prioritize Testing.**
-- **Reject Assumptions.**
+**Date:** April 25, 2024
 
-**Adherence to these principles is critical.**
+### 1. Current Status
+
+This project provides a functional platform for observing and interacting with a turn-based collaboration between two AI workers powered by a local Ollama instance. Key features currently implemented include:
+
+*   **Core Collaboration Loop:** Turn-based interaction between configurable AI workers.
+*   **Ollama Integration:** Connection checking, model fetching, and **streaming response generation** (`ollamaServices.stream.tsx`).
+*   **Chat Interface (`ChatInterface.tsx`):** Displays conversation history, handles user input, and provides controls for pause/resume.
+*   **Streaming UI (`ChatMessage.tsx`):** Assistant messages now render incrementally with a visual blinking cursor indicator during generation.
+*   **Settings Management (`SettingsDrawer`, `CollaborationSettings`):** Allows configuration of worker names, models, API details, turns, and other parameters.
+*   **State Management Foundation (`collaborationStore.ts`):** A Zustand store has been created with appropriate state slices (`messages`, `control`, `connectionStatus`, `settings`) and actions.
+*   **Basic State Persistence (`utils/CollaborationStateManager.ts`):** Saves and loads application state to/from `localStorage`.
+*   **UI Components:** Drawers for Settings, Files (static), and Previews (static/non-functional) are present and toggle correctly. Uses TailwindCSS/DaisyUI.
+
+### 2. Critical Issues & Limitations
+
+Despite progress, several critical issues and limitations need immediate attention:
+
+1.  **Double-Submit Bug (High Priority):** User reports indicate messages might still be processed twice on submission, despite preventative measures (`isSending`, `submissionLock`). Requires urgent debugging.
+2.  **Incomplete Zustand Integration:** While the store exists, `ChatInterface` still manages significant local state (settings, models), and `CollaborationService` requires adaptation to interact directly and efficiently with the store actions instead of its current callback mechanism.
+3.  **Non-Functional Previews:**
+    *   **Live Preview (`LivePreview.tsx`):** Ignores incoming code props and displays a hardcoded demo.
+    *   **Code Tabs (`CodeSubTabs.tsx`):** Show only static placeholder code.
+4.  **Static File Tree (`FolderDrawer.tsx`):** Uses placeholder data and is not connected to any dynamic content source.
+5.  **Rudimentary Memory Compression (`MemoryController.ts`):** The existing `compressMemory` logic is basic string truncation and not LLM-based summarization (though the UI allows configuring a summary model).
+6.  **Duplicate Code:** Two `WorkerForm.tsx` components and two `CollaborationStateManager` files exist, causing confusion.
+
+### 3. Recommended Roadmap & Next Steps
+
+To stabilize the application and deliver core functionality, the following prioritized steps are recommended:
+
+**Phase 1: Stability & Core Integration (Immediate Focus)**
+
+1.  **Debug & Fix Double-Submit:** Add detailed logging in `ChatInterface` (`handleSubmit`) and `CollaborationService` (`startCollaboration`, `injectMessage`) to trace the event flow and resolve the duplicate processing definitively.
+2.  **Complete Zustand Integration:**
+    *   Modify `CollaborationService` constructor/methods to accept and call specific Zustand store actions (`addMessage`, `updateMessage`, `setControl`). Remove the adapter callback.
+    *   Refactor `ChatInterface` to primarily read state from the store and use local state only for transient UI concerns (like the message input value). Move settings configuration state into the Zustand store's `settings` slice.
+3.  **Fix Live Preview:** Update `LivePreview.tsx`'s `updatePreview` function to use the `htmlCode`, `cssCode`, `jsCode` props to render dynamic content passed from `ResizableDrawer`.
+
+**Phase 2: Functionality & Cleanup**
+
+4.  **Implement LLM Summarization:** Replace the basic `compressMemory` logic in `CollaborationService` (or potentially a new `MemoryService`) with calls to an LLM (using the configured `summaryModel`) to generate meaningful strategic memory summaries. (*Note: This was previously marked as highest priority by user, moved slightly later to prioritize stability/integration first*).
+5.  **Consolidate Duplicates:** Remove the unused `WorkerForm.tsx` and `CollaborationStateManager.ts` files.
+6.  **Connect Code Tabs:** Plan and implement logic to connect the `CodeSubTabs` display to a data source (potentially linked to future file tree integration or AI output).
+
+**Phase 3: Enhancements & Quality**
+
+7.  **Implement File Tree Integration:** Connect `FolderDrawer` to a real or virtual file system state.
+8.  **Add Automated Tests:** Introduce unit tests (Vitest) for services, utilities, and critical store logic. Add component tests for UI interactions.
+9.  **UI/UX Polish:** Improve loading states, error messages, accessibility, and overall visual consistency.
+10. **Performance Optimization:** Implement chat memory limits/virtualization and optimize component rendering.
+
+### 4. Conclusion
+
+The project has successfully implemented core AI collaboration and streaming output. The immediate priority is to resolve the double-submit bug and complete the integration with the Zustand state store for enhanced stability and maintainability. Fixing the non-functional preview panes is the next crucial step to delivering the intended user experience. Following this stabilization phase, implementing LLM-based summarization and integrating the file system will significantly enhance the application's capabilities.
 
 ---
-
-## Immediate Next Steps (Revised Based on Current Priorities)
-
-1. **Implement LLM-Based Summarization (Highest Priority)**:
-
-   - On the `feature/summarization` branch, modify the `compressMemory` function in `CollaborationService.tsx` to use an LLM (e.g., DeepSeek R1 8B) for generating proper summaries of conversation segments, instead of basic string concatenation. This will improve the strategic memory by making it more concise and meaningful.
-   - Plan how the `summaryModel` (configurable in `SettingsDrawer.tsx`) will be integrated into the summarization process, ensuring async handling is correctly implemented.
-
-2. **Fix Live Preview Rendering**:
-
-   - Modify the `updatePreview` function within `LivePreview.tsx` to construct the `srcDoc` using the `htmlCode`, `cssCode`, and `jsCode` props it receives from `ResizableDrawer`, instead of its internal hardcoded values. Add basic error handling within the generated script tag.
-
-3. **Consolidate State Manager**:
-
-   - Decide whether to use the `utils` object or the `services` class version of `CollaborationStateManager`.
-   - Delete the unused version.
-   - Ensure `ChatInterface` imports and uses the chosen version correctly.
-   - Consider if `CollaborationService` should handle its own state persistence internally.
-
-4. **Plan File Tree Integration**:
-
-   - Design the state management approach (Context or library) to connect file selections in `FileTreeNode` to content display in `CodeSubTabs`. *Do not implement yet, focus on planning.*
-
----
-
-## Conclusion (Verified)
-
-The application has a working core for AI collaboration via Ollama, with recent improvements in security (fixed unsafe HTML rendering in `ChatMessage.tsx`) and state persistence. However, it still suffers from significant issues in its preview/file features (static/hardcoded data, non-functional live preview) and rudimentary memory compression. The immediate focus is on implementing LLM-based summarization in `compressMemory` to improve strategic memory, followed by fixing the live preview rendering and consolidating the duplicated state manager. Addressing these issues will create a more stable and functional platform before tackling more complex features like file system integration. The strict guidelines for managing AI development assistance remain paramount.

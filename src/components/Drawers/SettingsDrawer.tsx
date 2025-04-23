@@ -7,8 +7,10 @@ interface SettingsDrawerProps {
   style?: React.CSSProperties;
   worker1Name: string;
   worker1Model: string;
+  worker1Role: 'worker' | 'reviewer';
   worker2Name: string;
   worker2Model: string;
+  worker2Role: 'worker' | 'reviewer';
   turns: number;
   onAcceptSettings: () => void;
 }
@@ -19,13 +21,17 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
   style,
   worker1Name,
   worker1Model,
+  worker1Role,
   worker2Name,
   worker2Model,
+  worker2Role,
   turns,
   onAcceptSettings,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isAccepted, setIsAccepted] = useState(false); // Local state for visual feedback
+  const [isAccepted, setIsAccepted] = useState(false);
+  const [localWorker1Role, setLocalWorker1Role] = useState<'worker' | 'reviewer'>(worker1Role);
+  const [localWorker2Role, setLocalWorker2Role] = useState<'worker' | 'reviewer'>(worker2Role);
 
   const zIndex = 1050;
 
@@ -108,7 +114,35 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
               <X size={15} />
             </button>
           </header>
-          <div className="py-4 flex-grow">{children}</div>
+          <div className="py-4 flex-grow">
+            {children}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Worker 1 Role</span>
+              </label>
+              <select 
+                value={localWorker1Role}
+                onChange={(e) => setLocalWorker1Role(e.target.value as 'worker' | 'reviewer')}
+                className="select select-bordered w-full max-w-xs"
+              >
+                <option value="worker">Worker</option>
+                <option value="reviewer">Reviewer</option>
+              </select>
+            </div>
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Worker 2 Role</span>
+              </label>
+              <select
+                value={localWorker2Role}
+                onChange={(e) => setLocalWorker2Role(e.target.value as 'worker' | 'reviewer')}
+                className="select select-bordered w-full max-w-xs"
+              >
+                <option value="worker">Worker</option>
+                <option value="reviewer">Reviewer</option>
+              </select>
+            </div>
+          </div>
           <div className="flex justify-end gap-2 mt-auto pt-6 border-t border-base-content/10">
             <button
               className="btn btn-sm btn-ghost"
@@ -120,13 +154,6 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
             <button
               className={`btn btn-sm ${isAccepted ? 'btn-success' : 'btn-primary'} w-24`}
               onClick={handleAccept}
-              disabled={
-                !worker1Name ||
-                !worker1Model ||
-                !worker2Name ||
-                !worker2Model ||
-                turns < 1
-              }
               aria-label={isAccepted ? 'Applying Settings' : 'Accept Settings'}
             >
               {isAccepted ? (

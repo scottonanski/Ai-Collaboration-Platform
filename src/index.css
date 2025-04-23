@@ -48,3 +48,34 @@
 .whitespace-pre-wrap {
   white-space: pre-wrap;
 }
+
+/* Typing animation styles */
+.typing-animation {
+  overflow: hidden;
+  border-right: 2px solid;
+  white-space: pre-wrap;
+  margin: 0 auto;
+  animation: 
+    blink-caret .75s step-end infinite,
+    typing 0.1s steps(1, end);
+}
+
+@keyframes typing {
+  from { width: 0 }
+  to { width: 100% }
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent }
+  50% { border-color: currentColor }
+}
+
+.streaming-message {
+  opacity: 0.9;
+  transition: opacity 0.3s ease;
+}
+
+.streaming-message.complete {
+  opacity: 1;
+  border-right: none;
+}

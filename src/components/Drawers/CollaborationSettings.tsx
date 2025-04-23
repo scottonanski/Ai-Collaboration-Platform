@@ -19,6 +19,7 @@ interface CollaborationSettingsProps {
   setApi2Provider: Dispatch<SetStateAction<string>>;
   turns: number;
   setTurns: Dispatch<SetStateAction<number>>;
+
   requestSummary: boolean;
   setRequestSummary: Dispatch<SetStateAction<boolean>>;
   apiKey1: string;
@@ -48,11 +49,12 @@ const CollaborationSettings: React.FC<CollaborationSettingsProps> = ({
   setApi2Provider,
   turns,
   setTurns,
+
   requestSummary,
   setRequestSummary,
   apiKey1,
   setApiKey1,
-apiKey2,
+  apiKey2,
   setApiKey2,
   isLoadingModels,
   resumeOnInterjection,
@@ -61,12 +63,7 @@ apiKey2,
   setSummaryModel,
 }) => {
   useEffect(() => {
-    console.log("CollaborationSettings Props:", {
-      isLoadingModels,
-      availableModels,
-      worker1Model,
-      worker2Model,
-    });
+    // Debug logging removed for production cleanliness
   }, [isLoadingModels, availableModels, worker1Model, worker2Model]);
 
   return (
@@ -112,20 +109,6 @@ apiKey2,
         label="Worker 2 API Key"
         ariaLabel="Worker 2 API Key"
       />
-
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text">Number of Turns</span>
-        </label>
-        <input
-          type="number"
-          min="1"
-          value={turns}
-          onChange={(e) => setTurns(Math.max(1, parseInt(e.target.value) || 1))}
-          className="input input-bordered w-full"
-          aria-label="Number of Turns"
-        />
-      </div>
 
       <div className="form-control">
         <label className="cursor-pointer label">

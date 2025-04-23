@@ -1,269 +1,189 @@
-import { nanoid } from "nanoid"; // Import nanoid for unique message IDs
-import { ChatMessage, MemoryChunk, CollaborationControlState, CollaborationState, CollaborationTask } from "../collaborationTypes";
-import { fetchOllamaResponse } from "../services/ollamaServices"; // Import the new function
+import { nanoid } from "nanoid";
+import { ChatMessage, CollaborationControlState, CollaborationState, CollaborationTask, CollaborationServiceActions } from "../collaborationTypes";
+import { fetchOllamaResponseStream } from "./ollamaServices.stream";
+import { useCollaborationStore } from '../store/collaborationStore';
 
 export class CollaborationService {
-  private state: CollaborationState;
-  private updateCallback: (state: CollaborationState) => void;
+  private abortController: AbortController | null = null;
+
+  private actions: CollaborationServiceActions;
   private shouldPause: boolean = false;
-  private shouldResume: boolean = false;
+  private resumeCallback?: () => void;
   private requestSummary: boolean;
 
-  constructor(updateCallback: (state: CollaborationState) => void, requestSummary: boolean) {
-    console.log("Initializing new collaboration state.");
-    this.state = {
-      memory: {
-        workingMemory: [],
-        strategicMemory: [],
-      },
-      control: {
-        currentTurn: 0,
-        totalTurns: 0,
-        currentModel: "",
-        otherModel: "",
-        isCollaborating: false,
-        isPaused: false,
-        currentPhase: "idle",
-      },
-    };
-    this.updateCallback = updateCallback;
+  constructor(actions: CollaborationServiceActions, requestSummary: boolean) {
+    this.actions = actions;
     this.requestSummary = requestSummary;
-    this.notifyUpdate();
-  }
-
-  private notifyUpdate() {
-    this.updateCallback({ ...this.state, memory: { ...this.state.memory }, control: { ...this.state.control } });
-  }
-
-  private async compressMemory() {
-    console.log("Service Loop: Compressing memory...");
-    console.log("Total messages in workingMemory:", this.state.memory.workingMemory.length);
-    if (this.state.memory.workingMemory.length < 5) {
-      console.log("Not enough messages to compress (less than 5).");
-      return;
-    }
-
-    const messagesToSummarize = this.state.memory.workingMemory.slice(0, -2);
-    console.log("Messages to summarize:", messagesToSummarize.map(msg => `${msg.senderName}: ${msg.message}`));
-    const summary = messagesToSummarize
-      .map((msg) => `${msg.senderName}: ${msg.message}`)
-      .join("; ");
-    const newChunk: MemoryChunk = {
-      timestamp: new Date().toISOString(),
-      summary: `Summary: ${summary}`,
-    };
-    const remainingMessages = this.state.memory.workingMemory.slice(-2);
-    console.log("Remaining messages in workingMemory:", remainingMessages.map(msg => `${msg.senderName}: ${msg.message}`));
-    this.state = {
-      ...this.state,
-      memory: {
-        ...this.state.memory,
-        strategicMemory: [...this.state.memory.strategicMemory, newChunk],
-        workingMemory: remainingMessages,
-      },
-    };
-    this.notifyUpdate();
   }
 
   private checkMemoryLimit() {
-    if (this.state.memory.workingMemory.length > 10) {
-      this.compressMemory();
-    }
+    // Removed the call to compressMemory
   }
 
-  getState(): CollaborationState {
-    return { ...this.state, memory: { ...this.state.memory }, control: { ...this.state.control } };
-  }
+
 
   async startCollaboration(message: string, task: CollaborationTask) {
+    const serviceTimestamp = Date.now();
+    console.log(`[${serviceTimestamp}] Service: startCollaboration called with message: "${message}"`);
     console.log("Service: Starting collaboration... Task:", task);
-    const newControl: CollaborationControlState = {
-      currentTurn: 0,
-      totalTurns: task.turns * 2,
+    const newControl: Partial<CollaborationControlState> = {
       currentModel: task.worker1Model,
       otherModel: task.worker2Model,
       isCollaborating: true,
       isPaused: false,
       currentPhase: "processing",
+      currentRole: task.worker1Role,
     };
     const newMessage: ChatMessage = {
-      id: nanoid(), // Now type-compatible (string)
+      id: nanoid(),
       senderName: "User",
       role: "user",
       message,
       createdAt: new Date().toISOString(),
       type: "message",
     };
-    this.state = {
-      ...this.state,
-      memory: {
-        ...this.state.memory,
-        workingMemory: [...this.state.memory.workingMemory, newMessage],
-      },
-      control: newControl,
-    };
-    this.notifyUpdate();
-    await this.runCollaborationLoop(task.worker1Name, task.worker2Name);
+    this.actions.addMessage(newMessage);
+    this.actions.setControl(newControl);
+    await this.runCollaborationLoop(task.worker1Name, task.worker2Name, task.worker1Role, task.worker2Role);
   }
 
   pauseCollaboration() {
     console.log("Service: Signaling pause.");
     this.shouldPause = true;
-    this.state = {
-      ...this.state,
-      control: {
-        ...this.state.control,
-        isPaused: true,
-        currentPhase: "awaitingInput",
-      },
-    };
-    this.notifyUpdate();
+    this.actions.setControl({ isPaused: true, currentPhase: "awaitingInput" });
   }
 
   resumeCollaboration() {
     console.log("Service: Signaling resume.");
-    this.shouldResume = true;
-    this.state = {
-      ...this.state,
-      control: {
-        ...this.state.control,
-        isPaused: false,
-        currentPhase: "processing",
-      },
-    };
-    this.notifyUpdate();
+    // Reset the pause flag
+    this.shouldPause = false; 
+    // Update the state to reflect resumption
+    this.actions.setControl({ isPaused: false, currentPhase: "processing" }); 
+    
+    if (this.resumeCallback) {
+      this.resumeCallback();
+      this.resumeCallback = undefined;
+    }
   }
 
   injectMessage(message: string) {
+    const serviceTimestamp = Date.now();
+    console.log(`[${serviceTimestamp}] Service: injectMessage called with message: "${message}"`);
     console.log("Service: Injecting message:", message);
     const newMessage: ChatMessage = {
-      id: nanoid(), // Now type-compatible (string)
+      id: nanoid(),
       senderName: "User (Injection)",
       role: "user",
       message,
       createdAt: new Date().toISOString(),
       type: "message",
     };
-    this.state = {
-      ...this.state,
-      memory: {
-        ...this.state.memory,
-        workingMemory: [...this.state.memory.workingMemory, newMessage],
-      },
-    };
-    this.notifyUpdate();
+    this.actions.addMessage(newMessage);
   }
 
-  private async runCollaborationLoop(worker1Name: string, worker2Name: string) {
-    for (let turn = 1; turn <= this.state.control.totalTurns; turn++) {
-      this.state = {
-        ...this.state,
-        control: {
-          ...this.state.control,
-          currentTurn: turn,
-        },
-      };
-      console.log(`Service Loop: Starting Turn ${turn}/${this.state.control.totalTurns}`);
+  stopCollaboration() {
+    this.shouldPause = false;
+    this.actions.setControl({ isCollaborating: false, isPaused: false });
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
+  }
 
-      if (this.shouldPause) {
-        this.shouldPause = false;
-        while (!this.shouldResume) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-        this.shouldResume = false;
-        this.state = {
-          ...this.state,
-          control: {
-            ...this.state.control,
-            isPaused: false,
-          },
-        };
-        this.notifyUpdate();
-      }
-
-      const isWorker1 = turn % 2 !== 0;
-      const senderName = isWorker1 ? worker1Name : worker2Name;
-      const currentModel = isWorker1 ? this.state.control.currentModel : this.state.control.otherModel;
-
+  private async runCollaborationLoop(worker1Name: string, worker2Name: string, worker1Role: 'worker' | 'reviewer', worker2Role: 'worker' | 'reviewer') {
+    let isCollaborating = true;
+    let currentRole: 'worker' | 'reviewer' = worker1Role;
+    let currentModel = '';
+    let otherModel = '';
+    // Get initial models from control (assume store is source of truth)
+    // You may want to pass models as arguments if needed
+    while (isCollaborating) {
       try {
-        const context = this.state.memory.workingMemory.map(msg => `${msg.senderName}: ${msg.message}`);
-        const { response, error } = await fetchOllamaResponse(currentModel, context);
-
-        if (error) {
-          const errorMessage: ChatMessage = {
-            id: nanoid(), // Now type-compatible (string)
-            senderName: "System",
-            role: "system",
-            message: `Error in ${senderName}: ${error}`,
-            createdAt: new Date().toISOString(),
-            type: "message",
-          };
-          this.state = {
-            ...this.state,
-            memory: {
-              ...this.state.memory,
-              workingMemory: [...this.state.memory.workingMemory, errorMessage],
-            },
-          };
-        } else {
-          const newMessage: ChatMessage = {
-            id: nanoid(), // Now type-compatible (string)
-            senderName,
-            role: "assistant",
-            message: response,
-            createdAt: new Date().toISOString(),
-            type: "message",
-          };
-          this.state = {
-            ...this.state,
-            memory: {
-              ...this.state.memory,
-              workingMemory: [...this.state.memory.workingMemory, newMessage],
-            },
-          };
+        if (this.shouldPause) {
+          this.actions.setControl({ isPaused: true, currentPhase: "awaitingInput" });
+          await new Promise<void>(resolve => {
+            this.resumeCallback = resolve;
+          });
+          this.actions.setControl({ isPaused: false });
         }
-        this.checkMemoryLimit();
-        this.notifyUpdate();
+
+        // Get latest control state from store
+        const control = useCollaborationStore.getState().control;
+        isCollaborating = control.isCollaborating;
+        currentRole = control.currentRole as 'worker' | 'reviewer';
+        currentModel = currentRole === 'worker' ? control.currentModel : control.otherModel;
+        otherModel = currentRole === 'worker' ? control.otherModel : control.currentModel;
+
+        const isWorker = currentRole === 'worker';
+        const currentName = isWorker ? worker1Name : worker2Name;
+
+        // Generate appropriate prompt based on role
+        let prompt: string;
+        const workingMemory = useCollaborationStore.getState().messages;
+        if (isWorker) {
+          prompt = `Continue working on: ${workingMemory[workingMemory.length - 1].message}`;
+        } else {
+          prompt = `Review this work and provide feedback: ${workingMemory[workingMemory.length - 1].message}`;
+        }
+
+        const context = workingMemory.map(msg => `${msg.senderName}: ${msg.message}`);
+        // Use streaming function
+        // Prevent duplicate assistant messages per turn
+        const lastMsg = workingMemory[workingMemory.length - 1];
+        let assistantMessageId: string;
+        if (lastMsg && lastMsg.role === (isWorker ? 'assistant' : 'system') && lastMsg.streaming) {
+          assistantMessageId = lastMsg.id;
+        } else {
+          assistantMessageId = nanoid();
+          const assistantMessage: ChatMessage = {
+            id: assistantMessageId,
+            senderName: currentName,
+            role: isWorker ? 'assistant' : 'system',
+            message: '',
+            createdAt: new Date().toISOString(),
+            type: 'message',
+            streaming: true,
+          };
+          this.actions.addMessage(assistantMessage);
+        }
+
+        let accumulatedResponse = '';
+        let streamError: Error | null = null;
+        try {
+          this.abortController = new AbortController();
+          const stream = fetchOllamaResponseStream(currentModel, [...context, prompt].join('\n'), this.abortController.signal);
+          for await (const chunk of stream) {
+            accumulatedResponse += chunk;
+            this.actions.updateMessage(assistantMessageId, { message: accumulatedResponse });
+            if (this.shouldPause) {
+              break;
+            }
+          }
+        } catch (error) {
+          streamError = error instanceof Error ? error : new Error(String(error));
+          console.error('Streaming error:', streamError);
+        } finally {
+          if (streamError) {
+            this.actions.updateMessage(assistantMessageId, { message: accumulatedResponse + `\n\n[STREAM ERROR: ${streamError.message}]` });
+          }
+          this.actions.updateMessage(assistantMessageId, { streaming: false });
+        }
+        // TODO: Implement memory limit/pruning if needed using store
+        // Switch roles
+        this.actions.setControl({ currentRole: isWorker ? 'reviewer' : 'worker' });
+        await new Promise(resolve => setTimeout(resolve, 100));
+        // Refresh isCollaborating for next loop
+        isCollaborating = useCollaborationStore.getState().control.isCollaborating;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
-        console.error(`Error during turn ${turn}:`, errorMessage);
-        const errorMsg: ChatMessage = {
-          id: nanoid(), // Now type-compatible (string)
-          senderName: "System",
-          role: "system",
-          message: `Error: ${senderName} failed - ${errorMessage}`,
-          createdAt: new Date().toISOString(),
-          type: "message",
-        };
-        this.state = {
-          ...this.state,
-          memory: {
-            ...this.state.memory,
-            workingMemory: [...this.state.memory.workingMemory, errorMsg],
-          },
-        };
-        this.notifyUpdate();
-        throw new Error(`Collaboration failed: ${errorMessage}`);
+        console.error('Error in collaboration loop:', error);
+        this.actions.setControl({ isCollaborating: false });
+        break;
       }
-
-      await new Promise((resolve) => setTimeout(resolve, 100));
     }
-
-    if (this.requestSummary && this.state.memory.workingMemory.length >= 5) {
-      await this.compressMemory();
+    if (this.requestSummary) {
+      // Removed the call to compressMemory
     }
-
-    this.state = {
-      ...this.state,
-      control: {
-        ...this.state.control,
-        isCollaborating: false,
-        currentPhase: "idle",
-      },
-    };
-    console.log("Service: Collaboration loop finished.");
-    this.notifyUpdate();
   }
 }
 
-export type { CollaborationState };
+export type { CollaborationState }; 
