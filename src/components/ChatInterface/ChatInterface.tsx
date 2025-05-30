@@ -206,7 +206,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
     isSending, message, control.isPaused, control.isCollaborating, resumeOnInterjection, 
     turns, worker1Model, worker2Model, worker1Name, worker2Name, 
     addMessage, setMessage, collaborationMode, aiWorkers, isMultiModal, uploadedFiles,
-    requestSummary, apiKey1, apiKey2, api1Provider, api2Provider // Added service config dependencies
+    requestSummary, apiKey1, apiKey2
   ]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
