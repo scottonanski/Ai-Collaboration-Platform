@@ -10,30 +10,27 @@ function App() {
   const previewDrawerId = "PreviewDrawer";
 
   return (
-    <>
+    <div className="min-h-screen bg-base-200">
+      {/* Main Chat Interface */}
+      <div className="h-screen">
+        <ChatInterface
+          folderDrawerId={folderDrawerId}
+          previewDrawerId={previewDrawerId}
+        />
+      </div>
+
+      {/* Left Drawer - File System */}
       <FolderDrawer
         id={folderDrawerId}
-        mainContent={
-          <div className="h-screen">
-            <ChatInterface
-              folderDrawerId={folderDrawerId}
-              previewDrawerId={previewDrawerId}
-            />
-          </div>
-        }
+        mainContent={<div></div>} // Empty div as drawers handle their own content
       />
+
+      {/* Right Drawer - Preview & Tools */}
       <ResizableDrawer 
         id={previewDrawerId} 
-        mainContent={
-          <div className="h-screen">
-            <ChatInterface
-              folderDrawerId={folderDrawerId}
-              previewDrawerId={previewDrawerId}
-            />
-          </div>
-        }
+        mainContent={<div></div>} // Empty div as drawers handle their own content
       />
-    </>
+    </div>
   );
 }
 
