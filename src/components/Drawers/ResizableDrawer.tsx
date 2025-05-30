@@ -263,14 +263,14 @@ const ResizableDrawer: React.FC<ResizableDrawerProps> = ({
             {/* Split Layout: File Tree + Tabs */}
             <div className="flex flex-row flex-grow overflow-hidden">
               {/* File Tree Column */}
-              <div className="w-80 flex-shrink-0 border-r border-zinc-600 bg-zinc-800">
-                <div className="p-4">
+              <div className="w-80 flex-shrink-0 border-r border-zinc-600 bg-zinc-800 flex flex-col">
+                <div className="p-4 flex-shrink-0">
                   <div className="flex items-center gap-2 mb-4">
                     <Folder size={16} color='white' strokeWidth="0.75"/>
                     <h3 className="text-sm font-medium text-zinc-200">Project Files</h3>
                   </div>
                 </div>
-                <div className="flex-grow overflow-y-auto h-full">
+                <div className="flex-grow overflow-y-auto">
                   <FileTree nodes={fileSystem} onFileSelect={handleFileSelect} />
                 </div>
               </div>
