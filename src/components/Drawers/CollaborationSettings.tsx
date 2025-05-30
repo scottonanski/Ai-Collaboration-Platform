@@ -48,6 +48,15 @@ const CollaborationSettings: React.FC<CollaborationSettingsProps> = ({
 
   return (
     <div className="collaboration-settings flex flex-col gap-4">
+      <div className="form-control">
+        <label className="label">
+          <span className="label-text">👥 OpenAI Configuration</span>
+        </label>
+        <p className="text-xs text-base-content/70 mb-4">
+          API keys are loaded from environment variables (.env.local)
+        </p>
+      </div>
+
       <WorkerForm
         workerId="worker1"
         workerLabel="Worker 1"
@@ -57,16 +66,6 @@ const CollaborationSettings: React.FC<CollaborationSettingsProps> = ({
         setWorkerModel={setWorker1Model}
         availableModels={availableModels}
         isLoadingModels={isLoadingModels}
-      />
-
-      <ApiKeyForm
-        apiProvider={api1Provider}
-        setApiProvider={setApi1Provider}
-        apiKey={apiKey1}
-        setApiKey={setApiKey1}
-        apiProviders={["ollama", "openai"]}
-        label="Worker 1 API Key"
-        ariaLabel="Worker 1 API Key"
       />
 
       <WorkerForm
@@ -80,15 +79,20 @@ const CollaborationSettings: React.FC<CollaborationSettingsProps> = ({
         isLoadingModels={isLoadingModels}
       />
 
-      <ApiKeyForm
-        apiProvider={api2Provider}
-        setApiProvider={setApi2Provider}
-        apiKey={apiKey2}
-        setApiKey={setApiKey2}
-        apiProviders={["ollama", "openai"]}
-        label="Worker 2 API Key"
-        ariaLabel="Worker 2 API Key"
-      />
+      <div className="form-control">
+        <label className="label">
+          <span className="label-text">🔄 Collaboration Turns</span>
+        </label>
+        <input
+          type="number"
+          min="1"
+          max="20"
+          value={turns}
+          onChange={(e) => setTurns(parseInt(e.target.value) || 1)}
+          className="input input-bordered w-full"
+          aria-label="Number of collaboration turns"
+        />
+      </div>
 
       <div className="form-control">
         <label className="cursor-pointer label">
@@ -130,7 +134,7 @@ const CollaborationSettings: React.FC<CollaborationSettingsProps> = ({
               ))}
             </select>
           ) : (
-            <p className="text-error">No models available. Please check your connection.</p>
+            <p className="text-error">No models available. Please check your OpenAI configuration.</p>
           )}
         </div>
       )}
