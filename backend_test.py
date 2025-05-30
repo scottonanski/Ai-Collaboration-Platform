@@ -9,6 +9,7 @@ class AICollaborationPlatformAPITest(unittest.TestCase):
         super().__init__(*args, **kwargs)
         self.base_url = "http://localhost:8001"  # Using the backend URL from the environment
         self.api_prefix = "/api"
+        print(f"Using backend URL: {self.base_url}{self.api_prefix}")
         
     def get_url(self, endpoint):
         """Helper to construct API URLs with the proper prefix"""
