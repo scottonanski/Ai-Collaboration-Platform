@@ -86,7 +86,7 @@ const ResizableDrawer: React.FC<ResizableDrawerProps> = ({
     };
   }, [id]);
   const [activeTab, setActiveTab] = useState('preview');
-  const [drawerWidth, setDrawerWidth] = useState(60); // percentage
+  const [drawerWidth, setDrawerWidth] = useState(40); // percentage of viewport width when open
   const [isResizing, setIsResizing] = useState(false);
   const resizerRef = useRef<HTMLDivElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -174,12 +174,12 @@ const ResizableDrawer: React.FC<ResizableDrawerProps> = ({
   return (
     <div className="relative h-full">
       <aside
-        className={`fixed top-0 right-0 h-full flex flex-col transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} ${className || ''}`}
+        className={`fixed top-0 right-0 h-full flex flex-col transform transition-all duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} ${className || ''}`}
         style={{
           ...style,
-          width: `${drawerWidth}%`,
+          width: isOpen ? `${drawerWidth}%` : '0',
           zIndex: zIndex,
-          transition: isResizing ? 'none' : 'transform 0.3s ease, width 0.3s ease',
+          transition: isResizing ? 'none' : 'all 0.3s ease',
         }}
         aria-label="Preview and Tools Drawer"
         role="complementary"

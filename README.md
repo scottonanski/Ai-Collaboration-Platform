@@ -1,3 +1,69 @@
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js (v18 or later)
+- npm or yarn
+- OpenAI API key(s)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/scottonanski/ai-testing.git
+   cd ai-testing
+   ```
+
+2. **Install dependencies**
+   ```bash
+   yarn install
+   # or
+   npm install
+   ```
+
+3. **Set up environment variables**
+   Create a `.env.local` file in the root directory with your OpenAI API keys:
+   ```env
+   VITE_OPENAI_API_KEY_WORKER1=your_openai_api_key_here
+   VITE_OPENAI_API_KEY_WORKER2=your_second_openai_api_key_here
+   ```
+   
+   > **Note**: You can use the same API key for both workers if needed.
+
+4. **Start the development server**
+   ```bash
+   yarn dev
+   # or
+   npm run dev
+   ```
+
+5. **Open in your browser**
+   The application will be available at `http://localhost:5173`
+
+### Production Deployment
+
+For production deployment, you'll need to set up the environment variables on your hosting platform. The following environment variables are required:
+
+```env
+VITE_OPENAI_API_KEY_WORKER1=your_production_openai_key_1
+VITE_OPENAI_API_KEY_WORKER2=your_production_openai_key_2
+```
+
+#### Building for Production
+
+1. Create a production build:
+   ```bash
+   yarn build
+   # or
+   npm run build
+   ```
+
+2. The production files will be generated in the `dist` directory.
+
+3. Deploy the contents of the `dist` directory to your hosting provider (e.g., Vercel, Netlify, or a traditional web server).
+
+> **Security Note**: Never commit your `.env.local` file to version control. It's already included in `.gitignore` by default.
+
 ## 📋 Project Overview
 
 **Project Type:** AI-Powered Multi-Agent Collaboration Platform  
