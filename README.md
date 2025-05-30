@@ -2,7 +2,6 @@
 
 A modern, interactive development environment that combines AI-assisted coding with real-time collaboration features. This project provides a rich interface for writing, testing, and debugging code with AI assistance.
 
-![Screenshot of the application](https://via.placeholder.com/800x500/1e293b/ffffff?text=AI+Code+Workspace)
 
 ## 🚀 Features
 
