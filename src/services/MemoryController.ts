@@ -20,7 +20,7 @@ export class MemoryController {
   } {
     if (workingMemory.length < 5) {
       return {
-        compressed: { summary: "", timestamp: Date.now() },
+        compressed: { summary: "", timestamp: new Date().toISOString() },
         remaining: workingMemory,
       };
     }
