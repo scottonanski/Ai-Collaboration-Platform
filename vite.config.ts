@@ -15,6 +15,10 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       wasm(),
     ],
+    server: {
+      host: '0.0.0.0',
+      port: 3000,
+    },
     define: {
       'process.env': {},
       'import.meta.env.VITE_OPENAI_API_KEY_WORKER1': JSON.stringify(env.VITE_OPENAI_API_KEY_WORKER1 || ''),
