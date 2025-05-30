@@ -1,34 +1,17 @@
 import React from 'react';
 import DrawerHeader from './DrawerHeaders.tsx';
 import { Folder } from 'lucide-react';
-import FileTree, { FileTreeNodeData } from './FileTree.tsx'; // Assuming FileTree is in the same directory
+import FileTree, { FileTreeNodeData } from './FileTree.tsx';
+import { useCollaborationStore } from '../../store/collaborationStore';
 
 interface FolderDrawerProps {
   id: string;
-  // Removed sidebarItems as FileTree handles the structure
   mainContent?: React.ReactNode;
   triggerContent?: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
   zIndex?: number;
 }
-
-// Corrected placeholder data with unique IDs
-const placeholderTreeData: FileTreeNodeData[] = [
-  { id: 'folder-htdocs', name: 'htdocs', type: 'folder', children: [
-    { id: 'folder-html', name: 'html', type: 'folder', children: [
-      { id: 'file-index-html', name: 'index.html', type: 'file', fileType: 'html' },
-    ]},
-    { id: 'folder-css', name: 'css', type: 'folder', children: [
-      { id: 'file-style-css', name: 'style.css', type: 'file', fileType: 'css' },
-    ]},
-    { id: 'folder-scripts', name: 'scripts', type: 'folder', children: [
-      { id: 'file-app-js', name: 'app.js', type: 'file', fileType: 'js' },
-    ]},
-  ]},
-  // Example of another root item if needed
-  // { id: 'file-readme', name: 'README.md', type: 'file', fileType: 'other' },
-];
 
 const FolderDrawer: React.FC<FolderDrawerProps> = ({
   id = "FolderDrawer",
