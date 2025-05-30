@@ -6,7 +6,7 @@ export interface ChatMessage {
   role: "user" | "assistant" | "system";
   message: string;
   createdAt: string;
-  type: "message";
+  type: "message" | "system";
   streaming?: boolean; // Optional flag for streaming animation
 }
 
