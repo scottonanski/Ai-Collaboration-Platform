@@ -257,6 +257,10 @@ export const useCollaborationStore = create<CollaborationStore>()(
         set((state) => ({
           uploadedFiles: state.uploadedFiles.filter(f => f.name !== fileName)
         })),
+
+      clearUploadedFiles: () => {
+        set({ uploadedFiles: [] });
+      },
       
       addToMemory: (type, content) =>
         set((state) => ({
