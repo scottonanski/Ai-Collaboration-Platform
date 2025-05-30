@@ -42,6 +42,7 @@ interface CollaborationStore extends CollaborationState {
   uploadedFiles: File[];
   addUploadedFile: (file: File) => void;
   removeUploadedFile: (fileName: string) => void;
+  clearUploadedFiles: () => void;
   
   // Advanced memory
   contextMemory: {
