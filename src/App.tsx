@@ -3,11 +3,9 @@ import "./App.css";
 import React, { useState } from "react";
 import ChatInterface from "./components/ChatInterface/ChatInterface.tsx";
 import ResizableDrawer from "./components/Drawers/ResizableDrawer.tsx";
-import FolderDrawer from "./components/Drawers/FolderDrawer.tsx";
 
 function App() {
   const [showFullApp, setShowFullApp] = useState(false);
-  const folderDrawerId = "FolderDrawer";
   const previewDrawerId = "PreviewDrawer";
 
   if (showFullApp) {
@@ -16,18 +14,11 @@ function App() {
         {/* Main Content with Chat Interface */}
         <div className="h-screen">
           <ChatInterface
-            folderDrawerId={folderDrawerId}
             previewDrawerId={previewDrawerId}
           />
         </div>
 
-        {/* Left Drawer - File System */}
-        <FolderDrawer
-          id={folderDrawerId}
-          mainContent={<div></div>}
-        />
-
-        {/* Right Drawer - Preview & Tools */}
+        {/* Right Drawer - Preview & Tools (now includes File Tree) */}
         <ResizableDrawer 
           id={previewDrawerId} 
           mainContent={<div></div>}

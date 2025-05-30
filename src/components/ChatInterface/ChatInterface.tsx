@@ -6,15 +6,14 @@ import ChatMessageComponent from './ChatMessage';
 import { OPENAI_MODELS, getOpenAIApiKeys } from '../../services/openaiService';
 import SettingsDrawer from '../Drawers/SettingsDrawer';
 import CollaborationSettings from '../Drawers/CollaborationSettings';
-import { Settings, Folder, Eye, SendHorizontal, Pause, Play, Trash2, Zap, Brain, Sparkles, Upload } from 'lucide-react';
+import { Settings, Eye, SendHorizontal, Pause, Play, Trash2, Zap, Brain, Sparkles, Upload } from 'lucide-react';
 import { nanoid } from 'nanoid';
 
 interface ChatInterfaceProps {
-  folderDrawerId: string;
   previewDrawerId: string;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDrawerId }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ previewDrawerId }) => {
   const messages = useCollaborationStore((state) => state.messages);
   const control = useCollaborationStore((state) => state.control);
   const connectionStatus = useCollaborationStore((state) => state.connectionStatus);
@@ -408,10 +407,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
         
         <nav className="flex flex-row items-center justify-between w-full mt-1" role="navigation" id="ChatTextInputButtonContainer" aria-label="Chat Controls">
           <div className="flex flex-row gap-2" id="chat-settings-buttons">
-            <label htmlFor={folderDrawerId} className="btn btn-sm btn-ghost drawer-button tooltip tooltip-top" data-tip="📁 Project Files" aria-label="Open Folder Drawer">
-              <Folder size={16} />
-            </label>
-            
             <SettingsDrawer
               trigger={ 
                 <button type="button" className="btn btn-sm btn-ghost p-1 tooltip tooltip-top" data-tip="⚙️ Settings" aria-label="Open Settings Drawer">
