@@ -64,39 +64,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
       storeActions, 
       requestSummary,
       apiKey1,
-      apiKey2,
-      api1Provider as 'ollama' | 'openai',
-      api2Provider as 'ollama' | 'openai'
+      apiKey2
     );
-  }, [requestSummary, apiKey1, apiKey2, api1Provider, api2Provider]); // Dependencies ensure service is updated with new configs
+  }, [requestSummary, apiKey1, apiKey2]);
 
   useEffect(() => {
-    const checkConnection = async () => {
-      setIsLoadingModels(true);
-      const status = await checkOllamaConnection();
-      // console.log('Ollama connection status:', status); // Removed for performance
-      setConnectionStatus(status);
-
-      if (status === 'connected') {
-        try {
-          const fetchedModels = await fetchOllamaModels();
-          // console.log('Fetched models in ChatInterface:', fetchedModels); // Removed for performance
-          setModels(fetchedModels);
-          if (fetchedModels.length > 0) {
-            if (!worker1Model) setWorker1Model(fetchedModels[0]);
-            if (!worker2Model) setWorker2Model(fetchedModels.length > 1 ? fetchedModels[1] : fetchedModels[0]);
-            if (!summaryModel) setSummaryModel(fetchedModels[0]);
-          }
-        } catch (error) {
-          console.error("Failed to fetch Ollama models:", error);
-          setConnectionStatus('disconnected');
-        }
-      }
-      setIsLoadingModels(false);
-    };
-
-    checkConnection();
-  }, [setConnectionStatus, worker1Model, worker2Model, summaryModel]); // Added model states to potentially re-check/re-set if they were initially empty
+    // Set connection status based on API key availability
+    const hasValidKeys = apiKey1 && apiKey2;
+    setConnectionStatus(hasValidKeys ? 'connected' : 'disconnected');
+    
+    // Set OpenAI models as available
+    setModels(OPENAI_MODELS);
+    setIsLoadingModels(false);
+  }, [apiKey1, apiKey2, setConnectionStatus]);
 
   const messagesToDisplay = messages; // Assuming `messages` from Zustand is correctly updated immutably
 
