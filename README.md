@@ -10,8 +10,8 @@
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/scottonanski/ai-testing.git
-   cd ai-testing
+   git clone https://github.com/scottonanski/Ai-Collaboration-Platform.git
+   cd Ai-Collaboration-Platform
    ```
 
 2. **Install dependencies**
