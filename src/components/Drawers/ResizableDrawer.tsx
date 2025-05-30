@@ -6,6 +6,7 @@ import CodeSubTabs from './CodeSubTabs';
 import WebBrowserPanel from '../Advanced/WebBrowserPanel';
 import AdvancedMemoryManager from '../Advanced/AdvancedMemoryManager';
 import CollaborationFlowChart from '../Advanced/CollaborationFlowChart';
+import MindMapVisualizer from '../Advanced/MindMapVisualizer';
 import { useCollaborationStore } from '../../store/collaborationStore';
 
 interface ResizableDrawerProps {
