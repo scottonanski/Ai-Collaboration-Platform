@@ -96,6 +96,13 @@ const ResizableDrawer: React.FC<ResizableDrawerProps> = ({
   const contextMemory = useCollaborationStore((state) => state.contextMemory);
   const messages = useCollaborationStore((state) => state.messages);
   const addUploadedFile = useCollaborationStore((state) => state.addUploadedFile);
+  const fileSystem = useCollaborationStore((state) => state.fileSystem);
+
+  const handleFileSelect = (node: FileTreeNodeData) => {
+    console.log('File selected:', node);
+    // Here you could open the file in the code editor
+    // or trigger other actions based on the file type
+  };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
