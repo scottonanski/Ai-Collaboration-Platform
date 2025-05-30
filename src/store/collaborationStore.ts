@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function() {
       })),
 
       getFileById: (fileId: string) => {
-        const state = useCollaborationStore.getState();
+        const state = get();
         const findFile = (files: FileSystemNode[]): FileSystemNode | undefined => {
           for (const file of files) {
             if (file.id === fileId) return file;
