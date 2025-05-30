@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ChatMessage, CollaborationState } from '../collaborationTypes';
+import { OPENAI_MODELS, DEFAULT_SETTINGS } from '../services/openaiService';
 
 interface CodeContent {
   html: string;
@@ -90,7 +91,7 @@ export const useCollaborationStore = create<CollaborationStore>()(
         currentPhase: 'idle',
       },
       connectionStatus: 'disconnected',
-      settings: {},
+      settings: DEFAULT_SETTINGS, // Use OpenAI default settings
       
       // Enhanced features
       codeContent: {
@@ -146,14 +147,14 @@ export const useCollaborationStore = create<CollaborationStore>()(
       aiWorkers: {
         worker1: {
           name: 'Alice',
-          model: '',
+          model: DEFAULT_SETTINGS.worker1Model, // Use default OpenAI model
           role: 'Developer',
           specialization: 'Frontend Development',
           customInstructions: 'Focus on user experience and clean, maintainable code.'
         },
         worker2: {
           name: 'Bob',
-          model: '',
+          model: DEFAULT_SETTINGS.worker2Model, // Use default OpenAI model
           role: 'Analyst',
           specialization: 'Code Review & Optimization',
           customInstructions: 'Analyze code quality, performance, and suggest improvements.'
