@@ -33,10 +33,16 @@ interface CollaborationStore extends CollaborationState {
   
   // File system
   fileSystem: FileSystemNode[];
+  openFiles: string[]; // Track open file IDs
+  activeFileId: string | null; // Currently active file
   setFileSystem: (files: FileSystemNode[]) => void;
   addFile: (file: FileSystemNode) => void;
   updateFile: (id: string, updates: Partial<FileSystemNode>) => void;
   deleteFile: (id: string) => void;
+  openFile: (fileId: string) => void;
+  closeFile: (fileId: string) => void;
+  setActiveFile: (fileId: string) => void;
+  getFileById: (fileId: string) => FileSystemNode | undefined;
   
   // Multi-modal content
   uploadedFiles: File[];
