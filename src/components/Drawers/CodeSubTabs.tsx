@@ -54,6 +54,15 @@ const getLanguageFromExtension = (filename: string): string => {
 };
 
 const CodeSubTabs: React.FC = () => {
+  // Store state
+  const openFiles = useCollaborationStore((state) => state.openFiles);
+  const activeFileId = useCollaborationStore((state) => state.activeFileId);
+  const getFileById = useCollaborationStore((state) => state.getFileById);
+  const closeFile = useCollaborationStore((state) => state.closeFile);
+  const setActiveFile = useCollaborationStore((state) => state.setActiveFile);
+  const updateFile = useCollaborationStore((state) => state.updateFile);
+  const setCodeContent = useCollaborationStore((state) => state.setCodeContent);
+
   const [activeTab, setActiveTab] = useState('html');
   const [htmlCode, setHtmlCode] = useState(`<!DOCTYPE html>
 <html lang="en">
