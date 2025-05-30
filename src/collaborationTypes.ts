@@ -36,8 +36,16 @@ export type MessagePart =
   | { type: 'incompleteCode'; language: string; code: string };
 
 export interface CollaborationState {
+  messages: ChatMessage[];
   memory: MemorySystemState;
   control: CollaborationControlState;
+  connectionStatus: 'connected' | 'disconnected' | 'connecting';
+  settings: {
+    provider: string;
+    worker1Model: string;
+    worker2Model: string;
+    refinerModel: string;
+  };
 }
 
 export interface CollaborationTask {
