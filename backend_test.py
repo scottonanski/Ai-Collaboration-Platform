@@ -7,7 +7,7 @@ from datetime import datetime
 class AICollaborationPlatformAPITest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.base_url = "http://localhost:8002"  # Using the backend URL from the environment
+        self.base_url = "http://localhost:8001"  # Using the backend URL from the environment
         self.api_prefix = "/api"
         
     def get_url(self, endpoint):
