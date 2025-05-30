@@ -10,7 +10,6 @@ import { Settings, Folder, Eye, SendHorizontal, Pause, Play, Trash2, Zap, Brain,
 import { nanoid } from 'nanoid';
 
 interface ChatInterfaceProps {
-  folderDrawerId: string;
   previewDrawerId: string;
 }
 
