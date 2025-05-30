@@ -34,6 +34,11 @@ const MAIN_TABS = [
     icon: <FileImage size={16} strokeWidth="0.75" />,
   },
   {
+    id: 'mindmap',
+    title: 'Mind Map',
+    icon: <Brain size={16} strokeWidth="0.75" />,
+  },
+  {
     id: 'memory',
     title: 'AI Memory',
     icon: <Brain size={16} strokeWidth="0.75" />,
