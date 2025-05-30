@@ -258,6 +258,40 @@ export const useCollaborationStore = create<CollaborationStore>()(
           };
           return { fileSystem: deleteFromFileSystem(state.fileSystem) };
         }),
+
+      // New file management methods
+      openFile: (fileId: string) => set((state) => ({
+        openFiles: state.openFiles.includes(fileId) 
+          ? state.openFiles 
+          : [...state.openFiles, fileId],
+        activeFileId: fileId
+      })),
+
+      closeFile: (fileId: string) => set((state) => ({
+        openFiles: state.openFiles.filter(id => id !== fileId),
+        activeFileId: state.activeFileId === fileId 
+          ? (state.openFiles.length > 1 ? state.openFiles.find(id => id !== fileId) || null : null)
+          : state.activeFileId
+      })),
+
+      setActiveFile: (fileId: string) => set((state) => ({
+        activeFileId: state.openFiles.includes(fileId) ? fileId : state.activeFileId
+      })),
+
+      getFileById: (fileId: string) => {
+        const state = useCollaborationStore.getState();
+        const findFile = (files: FileSystemNode[]): FileSystemNode | undefined => {
+          for (const file of files) {
+            if (file.id === fileId) return file;
+            if (file.children) {
+              const found = findFile(file.children);
+              if (found) return found;
+            }
+          }
+          return undefined;
+        };
+        return findFile(state.fileSystem);
+      },
       
       addUploadedFile: (file) =>
         set((state) => ({
