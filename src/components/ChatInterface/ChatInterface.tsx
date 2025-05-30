@@ -455,7 +455,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
           </div>
           
           <span className={`text-xs h-4 flex-grow text-center px-4 ${connectionStatus === 'connected' ? 'text-success' : 'text-error'}`}>
-            {connectionStatus === 'connected' ? statusMessage : '❌ Failed to connect'}
+            {connectionStatus === 'connected' ? statusMessage : '❌ OpenAI API Keys not configured'}
           </span>
           
           <div className="flex flex-col items-end" id="chat-control-buttons-wrapper">
