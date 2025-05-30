@@ -149,7 +149,7 @@ export class CollaborationService {
             firstIteration = false;
         } else {
             const lastMessage = workingMemory.length > 0 ? workingMemory[workingMemory.length - 1] : null;
-            if (!lastMessage || lastMessage.role === currentWorkerConfig.role) {
+            if (!lastMessage || lastMessage.senderName === currentWorkerConfig.name) {
                  promptContent = "Continue the task based on the full conversation history.";
             } else {
                 promptContent = currentWorkerConfig.role === 'worker'
