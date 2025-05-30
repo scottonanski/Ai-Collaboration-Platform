@@ -9,7 +9,7 @@ const StrategicMemoryChunkComponent: React.FC<StrategicMemoryChunkProps> = ({ ch
   return (
     <div className="strategic-memory-chunk p-2 border border-base-content/20 rounded">
       <p className="text-sm text-base-content/70">
-        {new Date(chunk.timestamp).toLocaleString()}: {chunk.summary}
+        {new Date(chunk.timestamp).toLocaleString()}: {chunk.content}
       </p>
     </div>
   );
