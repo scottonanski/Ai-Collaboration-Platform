@@ -17,6 +17,7 @@ export interface MemoryChunk {
 
 export interface MemorySystemState {
   workingMemory: ChatMessage[];
+  strategicMemory?: any[]; // Add strategicMemory property  
 }
 
 export interface CollaborationControlState {
