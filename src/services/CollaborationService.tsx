@@ -176,7 +176,7 @@ export class CollaborationService {
         
         try {
           const messagesForApi = workingMemory.slice(-10).map((msg: ChatMessage) => ({
-            role: msg.role === 'user' ? 'user' : 'assistant',
+            role: (msg.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
             content: msg.message
           }));
           messagesForApi.push({ role: 'user', content: promptContent });
