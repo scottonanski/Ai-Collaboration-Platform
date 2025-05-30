@@ -306,15 +306,19 @@ document.addEventListener('DOMContentLoaded', function() {
             data-element="sub-tab-panel"
             data-tab-id={tab.id}
           >
-            <div className="p-4 h-full w-full flex flex-col">
-              <textarea
-                value={getCurrentCode()}
-                onChange={(e) => handleCodeChange(e.target.value)}
-                className="flex-grow w-full bg-zinc-900 text-green-400 font-mono text-sm p-4 border border-zinc-600 rounded resize-none focus:outline-none focus:border-green-500"
-                placeholder={`Enter your ${tab.title} code here...`}
-                spellCheck={false}
-              />
-            </div>
+            {tab.id === 'execute' ? (
+              <CodeExecutionEnvironment />
+            ) : (
+              <div className="p-4 h-full w-full flex flex-col">
+                <textarea
+                  value={getCurrentCode()}
+                  onChange={(e) => handleCodeChange(e.target.value)}
+                  className="flex-grow w-full bg-zinc-900 text-green-400 font-mono text-sm p-4 border border-zinc-600 rounded resize-none focus:outline-none focus:border-green-500"
+                  placeholder={`Enter your ${tab.title} code here...`}
+                  spellCheck={false}
+                />
+              </div>
+            )}
           </section>
         ))}
       </div>
