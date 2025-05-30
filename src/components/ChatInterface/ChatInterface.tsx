@@ -32,23 +32,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
   const [isSending, setIsSending] = useState(false);
   const submissionLock = useRef(false);
   const lastSubmissionTime = useRef(0);
-  const [models, setModels] = useState<string[]>([]);
-  const [isLoadingModels, setIsLoadingModels] = useState(true);
+  const [models, setModels] = useState<string[]>(OPENAI_MODELS);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [worker1Name, setWorker1Name] = useState(aiWorkers.worker1.name);
-  const [worker1Model, setWorker1Model] = useState('');
+  const [worker1Model, setWorker1Model] = useState(aiWorkers.worker1.model);
   const [worker2Name, setWorker2Name] = useState(aiWorkers.worker2.name);
-  const [worker2Model, setWorker2Model] = useState('');
+  const [worker2Model, setWorker2Model] = useState(aiWorkers.worker2.model);
   const [turns, setTurns] = useState(3);
   const [requestSummary, setRequestSummary] = useState(true);
-  const [api1Provider, setApi1Provider] = useState('ollama');
-  const [api2Provider, setApi2Provider] = useState('ollama');
-  const [apiKey1, setApiKey1] = useState('');
-  const [apiKey2, setApiKey2] = useState('');
   const [resumeOnInterjection, setResumeOnInterjection] = useState(true);
-  const [summaryModel, setSummaryModel] = useState('');
+  const [summaryModel, setSummaryModel] = useState(OPENAI_MODELS[0]);
   
   const [collaborationMode, setCollaborationMode] = useState<'turn-based' | 'parallel' | 'hierarchical'>('turn-based');
   const [isMultiModal, setIsMultiModal] = useState(false);
+
+  // Load API keys from environment
+  const { worker1: apiKey1, worker2: apiKey2 } = getOpenAIApiKeys();
 
   const collaborationServiceRef = useRef<CollaborationService | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
