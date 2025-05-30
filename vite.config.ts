@@ -6,6 +6,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
+  // Load environment variables
   const env = loadEnv(mode, process.cwd(), '');
   
   return {
@@ -15,8 +16,9 @@ export default defineConfig(({ mode }) => {
       wasm(),
     ],
     define: {
-      'import.meta.env.OPENAI_API_KEY_WORKER1': JSON.stringify(env.OPENAI_API_KEY_WORKER1),
-      'import.meta.env.OPENAI_API_KEY_WORKER2': JSON.stringify(env.OPENAI_API_KEY_WORKER2),
+      'process.env': {},
+      'import.meta.env.VITE_OPENAI_API_KEY_WORKER1': JSON.stringify(env.VITE_OPENAI_API_KEY_WORKER1 || ''),
+      'import.meta.env.VITE_OPENAI_API_KEY_WORKER2': JSON.stringify(env.VITE_OPENAI_API_KEY_WORKER2 || '')
     },
   };
 });

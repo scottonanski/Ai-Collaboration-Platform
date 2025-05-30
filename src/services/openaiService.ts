@@ -109,13 +109,9 @@ export async function* fetchOpenAIResponseStream(
 }
 
 // Utility function to load API keys from environment
-export const getOpenAIApiKeys = () => {
-  // In a Vite environment, environment variables are accessed via import.meta.env
-  const worker1Key = import.meta?.env?.OPENAI_API_KEY_WORKER1 || '';
-  const worker2Key = import.meta?.env?.OPENAI_API_KEY_WORKER2 || '';
-  
+export function getOpenAIApiKeys() {
   return {
-    worker1: worker1Key,
-    worker2: worker2Key
+    worker1: import.meta.env.VITE_OPENAI_API_KEY_WORKER1 || '',
+    worker2: import.meta.env.VITE_OPENAI_API_KEY_WORKER2 || ''
   };
 };

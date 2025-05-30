@@ -48,6 +48,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
 
   // Load API keys from environment
   const { worker1: apiKey1, worker2: apiKey2 } = getOpenAIApiKeys();
+  
+  // Debug: Log environment variables
+  console.log('Environment variables:', {
+    worker1Key: import.meta.env.VITE_OPENAI_API_KEY_WORKER1 ? 'Present' : 'Missing',
+    worker2Key: import.meta.env.VITE_OPENAI_API_KEY_WORKER2 ? 'Present' : 'Missing'
+  });
+  console.log('API Keys from getOpenAIApiKeys():', { apiKey1: apiKey1 ? 'Present' : 'Missing', apiKey2: apiKey2 ? 'Present' : 'Missing' });
 
   const collaborationServiceRef = useRef<CollaborationService | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
