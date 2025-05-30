@@ -24,7 +24,7 @@ export interface CollaborationControlState {
   otherModel: string;
   isCollaborating: boolean;
   isPaused: boolean;
-  currentPhase: 'idle' | 'processing' | 'awaitingInput' | 'reviewing';
+  currentPhase: 'idle' | 'processing' | 'awaitingInput' | 'reviewing' | 'completed' | 'error';
   currentRole: 'worker' | 'reviewer';
   currentTurn: number;
   totalTurns: number;
@@ -47,6 +47,7 @@ export interface CollaborationTask {
   worker2Name: string;
   worker1Role: 'worker' | 'reviewer';
   worker2Role: 'worker' | 'reviewer';
+  turns: number;
 }
 
 // Actions interface for CollaborationService

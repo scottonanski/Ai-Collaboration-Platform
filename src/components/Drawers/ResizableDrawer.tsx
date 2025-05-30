@@ -58,6 +58,32 @@ const ResizableDrawer: React.FC<ResizableDrawerProps> = ({
   style,
   zIndex = 100,
 }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  
+  // Toggle drawer when the checkbox changes
+  const handleToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsOpen(e.target.checked);
+  };
+  
+  // Close drawer when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const drawer = document.getElementById(id) as HTMLInputElement;
+      const drawerElement = drawerRef.current;
+      
+      if (drawer && drawerElement && 
+          !drawerElement.contains(e.target as Node) && 
+          !(e.target as HTMLElement).closest(`label[for="${id}"]`)) {
+        drawer.checked = false;
+        setIsOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [id]);
   const [activeTab, setActiveTab] = useState('preview');
   const [drawerWidth, setDrawerWidth] = useState(60); // percentage
   const [isResizing, setIsResizing] = useState(false);
@@ -72,6 +98,7 @@ const ResizableDrawer: React.FC<ResizableDrawerProps> = ({
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsResizing(true);
   };
 
@@ -79,9 +106,13 @@ const ResizableDrawer: React.FC<ResizableDrawerProps> = ({
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing || !drawerRef.current) return;
 
-      const rect = drawerRef.current.getBoundingClientRect();
+      // Calculate new width based on mouse position from the right edge of the screen
       const newWidth = ((window.innerWidth - e.clientX) / window.innerWidth) * 100;
+      // Constrain between 20% and 80% of viewport width
       setDrawerWidth(Math.max(20, Math.min(80, newWidth)));
+      
+      // Prevent text selection while resizing
+      e.preventDefault();
     };
 
     const handleMouseUp = () => {
@@ -91,11 +122,14 @@ const ResizableDrawer: React.FC<ResizableDrawerProps> = ({
     if (isResizing) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
+      // Prevent text selection while resizing
+      document.body.style.userSelect = 'none';
     }
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
     };
   }, [isResizing]);
 
@@ -130,85 +164,128 @@ const ResizableDrawer: React.FC<ResizableDrawerProps> = ({
   };
 
   return (
-    <aside
-      className={`drawer drawer-end${className ? ' ' + className : ''}`}
-      style={style}
-      aria-label="Preview and Tools Drawer"
-      role="complementary"
-      data-component="ResizableDrawer"
-    >
-      <input id={id} type="checkbox" className="drawer-toggle" />
-      <div className="drawer-content">{mainContent}</div>
-      <nav
-        ref={drawerRef}
-        className="drawer-side"
-        style={{ 
-          zIndex,
+    <div className="relative h-full">
+      <aside
+        className={`fixed top-0 right-0 h-full flex flex-col transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} ${className || ''}`}
+        style={{
+          ...style,
           width: `${drawerWidth}%`,
-          transition: isResizing ? 'none' : 'width 0.3s ease'
+          zIndex: zIndex,
+          transition: isResizing ? 'none' : 'transform 0.3s ease, width 0.3s ease',
         }}
-        aria-label="Preview and Tools Sidebar"
-        role="region"
-        data-element="drawer-side"
+        aria-label="Preview and Tools Drawer"
+        role="complementary"
+        data-component="ResizableDrawer"
       >
-        <label
-          htmlFor={id}
-          aria-label="Close Preview and Tools Sidebar"
-          className="drawer-overlay"
+        <input 
+          id={id} 
+          type="checkbox" 
+          className="drawer-toggle hidden" 
+          checked={isOpen}
+          onChange={handleToggle}
         />
-        
-        {/* Resize Handle */}
-        <div
-          ref={resizerRef}
-          className="absolute left-0 top-0 bottom-0 w-1 bg-base-300 hover:bg-primary cursor-col-resize z-10"
-          onMouseDown={handleMouseDown}
-          title="Drag to resize"
-        />
-        
-        <section
-          className="bg-zinc-800 text-base-content min-h-full flex flex-col ml-1"
-          aria-label="Preview and Tools Content"
+        <div className="drawer-content">{mainContent}</div>
+        <nav
+          ref={drawerRef}
+          className="h-full flex flex-col bg-base-200 shadow-lg w-full"
+          aria-label="Preview and Tools Sidebar"
           role="region"
-          data-element="sidebar-content"
+          data-element="drawer-side"
+          style={{
+            backgroundColor: 'hsl(var(--b2))',
+            zIndex: zIndex + 1
+          }}
         >
-          <DrawerHeader
-            icon={<Eye size={16} color="white" strokeWidth="0.75" />}
-            title="Preview & Tools"
+          <label
+            htmlFor={id}
+            aria-label="Close Preview and Tools Sidebar"
+            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            style={{ display: isOpen ? 'block' : 'none' }}
+            onClick={() => setIsOpen(false)}
           />
+          
+          {/* Resize Handle - Positioned on the left side */}
+          <div
+            ref={resizerRef}
+            className="absolute left-0 top-0 bottom-0 w-2 bg-base-300 hover:bg-primary cursor-col-resize z-50"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsResizing(true);
+            }}
+            style={{
+              marginLeft: '-4px', // Makes it slightly overlap with the content
+              transition: 'background-color 0.2s',
+              zIndex: zIndex + 2
+            }}
+            onMouseEnter={() => {
+              if (resizerRef.current) {
+                resizerRef.current.style.backgroundColor = 'hsl(var(--p))';
+              }
+            }}
+            onMouseLeave={() => {
+              if (resizerRef.current && !isResizing) {
+                resizerRef.current.style.backgroundColor = 'hsl(var(--bc) / 0.2)';
+              }
+            }}
+            title="Drag to resize"
+          />
+        
+          <section
+            className="bg-base-200 text-base-content h-full flex flex-col overflow-hidden"
+            style={{
+              width: '100%',
+              height: '100vh',
+              position: 'relative',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'hsl(var(--b2))',
+              zIndex: zIndex + 1
+            }}
+            aria-label="Preview and Tools Content"
+            role="region"
+            data-element="sidebar-content"
+          >
+            <DrawerHeader
+              icon={<Eye size={16} color="white" strokeWidth="0.75" />}
+              title="Preview & Tools"
+            />
 
-          {/* Main Tabs Navigation */}
-          <nav className="flex-shrink-0 border-b border-zinc-600">
-            <div role="tablist" className="flex overflow-x-auto">
-              {MAIN_TABS.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    className={`flex items-center gap-2 px-4 py-3 text-sm border-b-2 transition-colors whitespace-nowrap ${
-                      isActive
-                        ? 'border-primary text-primary bg-zinc-700'
-                        : 'border-transparent text-zinc-400 hover:text-white hover:bg-zinc-700'
-                    }`}
-                    onClick={() => setActiveTab(tab.id)}
-                  >
-                    {tab.icon}
-                    <span>{tab.title}</span>
-                  </button>
-                );
-              })}
+            {/* Main Tabs Navigation */}
+            <nav className="flex-shrink-0 border-b border-zinc-600">
+              <div role="tablist" className="flex overflow-x-auto">
+                {MAIN_TABS.map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      className={`flex items-center gap-2 px-4 py-3 text-sm border-b-2 transition-colors whitespace-nowrap ${
+                        isActive
+                          ? 'border-primary text-primary bg-zinc-700'
+                          : 'border-transparent text-zinc-400 hover:text-white hover:bg-zinc-700'
+                      }`}
+                      onClick={() => setActiveTab(tab.id)}
+                    >
+                      {tab.icon}
+                      <span>{tab.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
+
+            {/* Tab Content */}
+            <div className="flex-grow overflow-hidden">
+              {renderTabContent()}
             </div>
-          </nav>
-
-          {/* Tab Content */}
-          <div className="flex-grow overflow-hidden">
-            {renderTabContent()}
-          </div>
-        </section>
-      </nav>
-    </aside>
+          </section>
+        </nav>
+      </aside>
+    </div>
   );
 };
 

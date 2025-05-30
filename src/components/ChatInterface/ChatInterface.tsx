@@ -1,14 +1,12 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useCollaborationStore } from '../../store/collaborationStore';
-import { ChatMessage, CollaborationState, CollaborationServiceActions } from '../../collaborationTypes';
+import { ChatMessage as ChatMessageData, CollaborationState, CollaborationServiceActions } from '../../collaborationTypes'; // Renamed ChatMessage type
 import { CollaborationService } from '../../services/CollaborationService';
-import ChatMessageComponent from './ChatMessage';
+import ChatMessageComponent from './ChatMessage'; // This is the memoized component
 import { checkOllamaConnection, fetchOllamaModels } from '../../services/ollamaServices';
 import SettingsDrawer from '../Drawers/SettingsDrawer';
 import CollaborationSettings from '../Drawers/CollaborationSettings';
-// Import icons
 import { Settings, Folder, Eye, SendHorizontal, Pause, Play, Trash2, Zap, Brain, Sparkles, Upload } from 'lucide-react';
-// Use nanoid for message IDs
 import { nanoid } from 'nanoid';
 
 interface ChatInterfaceProps {
@@ -21,7 +19,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
   const control = useCollaborationStore((state) => state.control);
   const connectionStatus = useCollaborationStore((state) => state.connectionStatus);
   const addMessage = useCollaborationStore((state) => state.addMessage);
-  const updateMessage = useCollaborationStore((state) => state.updateMessage);
+  // updateMessage is used by CollaborationService, not directly here for list updates
+  // const updateMessage = useCollaborationStore((state) => state.updateMessage); 
   const setConnectionStatus = useCollaborationStore((state) => state.setConnectionStatus);
   const setControl = useCollaborationStore((state) => state.setControl);
   const setMessages = useCollaborationStore((state) => state.setMessages);
@@ -48,18 +47,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
   const [resumeOnInterjection, setResumeOnInterjection] = useState(true);
   const [summaryModel, setSummaryModel] = useState('');
   
-  // Advanced features
   const [collaborationMode, setCollaborationMode] = useState<'turn-based' | 'parallel' | 'hierarchical'>('turn-based');
   const [isMultiModal, setIsMultiModal] = useState(false);
 
-  // Ref to access CollaborationService instance methods
   const collaborationServiceRef = useRef<CollaborationService | null>(null);
-
-  // Ref for textarea
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Effect to initialize and store the service instance
   useEffect(() => {
     const storeActions: CollaborationServiceActions = {
       addMessage: useCollaborationStore.getState().addMessage,
@@ -67,20 +61,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
       setControl: useCollaborationStore.getState().setControl,
       setConnectionStatus: useCollaborationStore.getState().setConnectionStatus,
     };
-    collaborationServiceRef.current = new CollaborationService(storeActions, requestSummary);
-  }, [requestSummary]);
+    collaborationServiceRef.current = new CollaborationService(
+      storeActions, 
+      requestSummary,
+      apiKey1,
+      apiKey2,
+      api1Provider as 'ollama' | 'openai',
+      api2Provider as 'ollama' | 'openai'
+    );
+  }, [requestSummary, apiKey1, apiKey2, api1Provider, api2Provider]); // Dependencies ensure service is updated with new configs
 
   useEffect(() => {
     const checkConnection = async () => {
       setIsLoadingModels(true);
       const status = await checkOllamaConnection();
-      console.log('Ollama connection status:', status);
+      // console.log('Ollama connection status:', status); // Removed for performance
       setConnectionStatus(status);
 
       if (status === 'connected') {
         try {
           const fetchedModels = await fetchOllamaModels();
-          console.log('Fetched models in ChatInterface:', fetchedModels);
+          // console.log('Fetched models in ChatInterface:', fetchedModels); // Removed for performance
           setModels(fetchedModels);
           if (fetchedModels.length > 0) {
             if (!worker1Model) setWorker1Model(fetchedModels[0]);
@@ -96,9 +97,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
     };
 
     checkConnection();
-  }, [setConnectionStatus]);
+  }, [setConnectionStatus, worker1Model, worker2Model, summaryModel]); // Added model states to potentially re-check/re-set if they were initially empty
 
-  const messagesToDisplay = messages;
+  const messagesToDisplay = messages; // Assuming `messages` from Zustand is correctly updated immutably
 
   const isPaused = control.isPaused;
   const isCollaborating = control.isCollaborating;
@@ -111,96 +112,128 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
   const canPause = control.isCollaborating && !control.isPaused;
   const canResume = control.isCollaborating && control.isPaused;
 
-  // Enhanced submission with better debouncing and safety
-  const handleSubmit = useCallback(async (e?: React.FormEvent) => {
-    const now = Date.now();
-    const submitTimestamp = now;
-    console.log(`[${submitTimestamp}] --- Submit Handler Triggered ---`);
-    e?.preventDefault();
+  const handleInterject = useCallback(() => {
+    if (!control.isCollaborating || !control.isPaused) return;
+    
+    const storeActions: CollaborationServiceActions = {
+      addMessage: useCollaborationStore.getState().addMessage,
+      updateMessage: useCollaborationStore.getState().updateMessage,
+      setControl: useCollaborationStore.getState().setControl,
+      setConnectionStatus: useCollaborationStore.getState().setConnectionStatus,
+    };
+    
+    // Ensure service has latest configs
+    collaborationServiceRef.current = new CollaborationService(
+      storeActions,
+      requestSummary,
+      apiKey1,
+      apiKey2,
+      api1Provider as 'ollama' | 'openai',
+      api2Provider as 'ollama' | 'openai'
+    );
+    // Actual interjection logic might be handled by handleSubmit or a dedicated service method
+  }, [control.isCollaborating, control.isPaused, requestSummary, apiKey1, apiKey2, api1Provider, api2Provider]);
 
-    // Enhanced double-submit prevention
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim() || isSending || (control.isCollaborating && !control.isPaused)) return;
+    
+    const storeActions: CollaborationServiceActions = {
+      addMessage: useCollaborationStore.getState().addMessage,
+      updateMessage: useCollaborationStore.getState().updateMessage,
+      setControl: useCollaborationStore.getState().setControl,
+      setConnectionStatus: useCollaborationStore.getState().setConnectionStatus,
+    };
+    
+    // Ensure service has latest configs for this submission
+    collaborationServiceRef.current = new CollaborationService(
+      storeActions,
+      requestSummary,
+      apiKey1,
+      apiKey2,
+      api1Provider as 'ollama' | 'openai',
+      api2Provider as 'ollama' | 'openai'
+    );
+
+    const now = Date.now();
+    // const submitTimestamp = now; // For debugging, can be re-enabled
+    // console.log(`[${submitTimestamp}] --- Submit Handler Triggered ---`);
+
     if (submissionLock.current || isSending || (now - lastSubmissionTime.current < 500)) {
-      console.warn(`[${submitTimestamp}] Submission BLOCKED (Lock: ${submissionLock.current}, Sending: ${isSending}, Time: ${now - lastSubmissionTime.current}ms)`);
+      // console.warn(`[${submitTimestamp}] Submission BLOCKED (Lock: ${submissionLock.current}, Sending: ${isSending}, Time: ${now - lastSubmissionTime.current}ms)`);
       return;
     }
 
     submissionLock.current = true;
     lastSubmissionTime.current = now;
     setIsSending(true);
-    console.log(`[${submitTimestamp}] Submission LOCK ACQUIRED, isSending SET true`);
+    // console.log(`[${submitTimestamp}] Submission LOCK ACQUIRED, isSending SET true`);
 
     try {
       if (!collaborationServiceRef.current || !message.trim()) {
-        console.log(`[${submitTimestamp}] Submission cancelled (invalid state)`);
+        // console.log(`[${submitTimestamp}] Submission cancelled (invalid state)`);
         return;
       }
 
-      const currentMessage = message.trim();
-      console.log(`[${submitTimestamp}] Processing message: "${currentMessage}"`);
+      const currentMessageContent = message.trim();
+      // console.log(`[${submitTimestamp}] Processing message: "${currentMessageContent}"`);
 
-      // Enhanced message with attachments if multimodal
-      const messageContent = isMultiModal && uploadedFiles.length > 0 
-        ? `${currentMessage}\n\n[Attached Files: ${uploadedFiles.map(f => f.name).join(', ')}]`
-        : currentMessage;
+      const messageText = isMultiModal && uploadedFiles.length > 0 
+        ? `${currentMessageContent}\n\n[Attached Files: ${uploadedFiles.map(f => f.name).join(', ')}]`
+        : currentMessageContent;
 
-      const newUserMessage: ChatMessage = {
+      // Add user message to UI immediately, let service handle its own logic for adding to history if needed
+      const newUserMessage: ChatMessageData = {
         id: nanoid(),
         senderName: "User",
         role: "user",
-        message: messageContent,
+        message: messageText, // Use potentially augmented message
         createdAt: new Date().toISOString(),
         type: "message",
       };
-      
-      addMessage(newUserMessage);
-      setMessage('');
+      addMessage(newUserMessage); // Add to Zustand store
+      setMessage(''); // Clear input
 
       if (control.isPaused) {
-        console.log(`[${submitTimestamp}] Injecting message during pause`);
-        collaborationServiceRef.current.injectMessage(currentMessage);
+        // console.log(`[${submitTimestamp}] Injecting message during pause`);
+        // Pass the plain text content to the service
+        collaborationServiceRef.current.injectMessage(currentMessageContent, newUserMessage.id); 
         if (resumeOnInterjection) {
           collaborationServiceRef.current.resumeCollaboration();
         }
       } else if (!control.isCollaborating) {
-        console.log(`[${submitTimestamp}] Starting new collaboration`);
-        
-        // Enhanced task configuration
+        // console.log(`[${submitTimestamp}] Starting new collaboration`);
         const task = {
-          turns,
-          worker1Model,
-          worker2Model,
-          worker1Name,
-          worker2Name,
+          turns, worker1Model, worker2Model, worker1Name, worker2Name,
           worker1Role: aiWorkers.worker1.role as 'worker' | 'reviewer',
           worker2Role: aiWorkers.worker2.role as 'worker' | 'reviewer',
           collaborationMode,
-          specializations: {
-            worker1: aiWorkers.worker1.specialization,
-            worker2: aiWorkers.worker2.specialization
-          },
-          customInstructions: {
-            worker1: aiWorkers.worker1.customInstructions,
-            worker2: aiWorkers.worker2.customInstructions
-          }
+          specializations: { worker1: aiWorkers.worker1.specialization, worker2: aiWorkers.worker2.specialization },
+          customInstructions: { worker1: aiWorkers.worker1.customInstructions, worker2: aiWorkers.worker2.customInstructions }
         };
-        
-        await collaborationServiceRef.current.startCollaboration(currentMessage, task);
-        console.log(`[${submitTimestamp}] startCollaboration awaited`);
+        // Pass the plain text content to the service, it will construct its own history
+        await collaborationServiceRef.current.startCollaboration(currentMessageContent, task, newUserMessage.id);
+        // console.log(`[${submitTimestamp}] startCollaboration awaited`);
       } else {
-        console.warn(`[${submitTimestamp}] Attempted to send while active`);
+        // console.warn(`[${submitTimestamp}] Attempted to send while active`);
       }
     } catch (error) {
-      console.error(`[${submitTimestamp}] Submission error:`, error);
+      console.error(`Submission error:`, error); // Keep essential error logging
     } finally {
-      console.log(`[${submitTimestamp}] Submission FINALLY block reached`);
-      // Add delay before releasing lock to prevent rapid resubmission
+      // console.log(`[${submitTimestamp}] Submission FINALLY block reached`);
       setTimeout(() => {
         submissionLock.current = false;
         setIsSending(false);
-        console.log(`[${submitTimestamp}] Submission LOCK RELEASED, isSending SET false`);
+        // console.log(`[${submitTimestamp}] Submission LOCK RELEASED, isSending SET false`);
       }, 300);
     }
-  }, [isSending, message, control.isPaused, control.isCollaborating, resumeOnInterjection, turns, worker1Model, worker2Model, worker1Name, worker2Name, addMessage, setMessage, collaborationMode, aiWorkers, isMultiModal, uploadedFiles]);
+  }, [
+    isSending, message, control.isPaused, control.isCollaborating, resumeOnInterjection, 
+    turns, worker1Model, worker2Model, worker1Name, worker2Name, 
+    addMessage, setMessage, collaborationMode, aiWorkers, isMultiModal, uploadedFiles,
+    requestSummary, apiKey1, apiKey2, api1Provider, api2Provider // Added service config dependencies
+  ]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(event.target.value);
@@ -208,23 +241,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
 
   const handlePause = useCallback(() => {
     collaborationServiceRef.current?.pauseCollaboration();
-  }, [collaborationServiceRef]);
+  }, []); // ref.current is stable
 
   const handleResume = useCallback(() => {
     collaborationServiceRef.current?.resumeCollaboration();
-  }, [collaborationServiceRef]);
+  }, []); // ref.current is stable
 
   const handleClearChat = useCallback(() => {
     if (confirm('Clear all messages? This cannot be undone.')) {
-      setMessages([]);
-      setControl({ isCollaborating: false, isPaused: false, currentTurn: 0 });
+      setMessages([]); // Directly update Zustand store
+      setControl({ isCollaborating: false, isPaused: false, currentTurn: 0, currentPhase: 'idle' });
+      collaborationServiceRef.current?.stopCollaboration(); // Also inform the service
     }
   }, [setMessages, setControl]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    files.forEach(file => addUploadedFile(file));
-    setIsMultiModal(true);
+    files.forEach(file => addUploadedFile(file)); // Add to Zustand store
+    setIsMultiModal(true); // Update local UI state
+     if (event.target) { // Clear the input value to allow re-uploading the same file
+        event.target.value = '';
+    }
   };
 
   const handleSmartSuggestion = (suggestion: string) => {
@@ -249,11 +286,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
     statusMessage = `🔄 Collaborating... (Turn ${control.currentTurn || '?'}/${control.totalTurns || '?'}) Processing...`;
   } else if (control.isPaused) {
     statusMessage = '⏸️ Paused: Awaiting your input...';
-  } else if (control.isCollaborating) {
-    statusMessage = `🤖 Collaborating... (Phase: ${control.currentPhase})`;
+  } else if (control.isCollaborating) { // Fallback for other collaborating states
+    statusMessage = `🤖 Collaborating... (Phase: ${control.currentPhase || 'active'})`;
   }
 
-  // Smart suggestions based on context
+
   const smartSuggestions = [
     "💡 Help me brainstorm ideas for...",
     "🔍 Analyze and improve this code...",
@@ -268,7 +305,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
       className="flex flex-col items-center gap-4 m-auto justify-between w-full h-full p-1 bg-base-200"
       role="main" aria-label="Chat Interface" data-component="ChatInterface"
     >
-      {/* Enhanced Header with quick actions */}
       <div className="w-full max-w-4xl">
         <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg p-3 mb-2">
           <div className="flex items-center justify-between">
@@ -276,12 +312,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
               <div className="avatar-group -space-x-2">
                 <div className="avatar placeholder">
                   <div className="bg-primary text-primary-content rounded-full w-8">
-                    <span className="text-xs">{worker1Name[0]}</span>
+                    <span className="text-xs">{worker1Name ? worker1Name[0] : 'W1'}</span>
                   </div>
                 </div>
                 <div className="avatar placeholder">
                   <div className="bg-secondary text-secondary-content rounded-full w-8">
-                    <span className="text-xs">{worker2Name[0]}</span>
+                    <span className="text-xs">{worker2Name ? worker2Name[0] : 'W2'}</span>
                   </div>
                 </div>
               </div>
@@ -297,13 +333,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
               </div>
               <div className="dropdown dropdown-end">
                 <label tabIndex={0} className="btn btn-xs btn-ghost">⚡</label>
-                <div className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
-                  <div className="menu-title">Quick Actions</div>
+                <div tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+                  <div className="menu-title text-xs px-4 py-2">Quick Actions</div>
                   {smartSuggestions.slice(0, 3).map((suggestion, idx) => (
                     <li key={idx}>
-                      <a onClick={() => handleSmartSuggestion(suggestion)} className="text-xs">
+                      <button onClick={() => handleSmartSuggestion(suggestion)} className="text-xs p-2 text-left w-full hover:bg-base-200 rounded">
                         {suggestion}
-                      </a>
+                      </button>
                     </li>
                   ))}
                 </div>
@@ -316,7 +352,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
       <div
         className="flex flex-col gap-4 w-full max-w-4xl p-4 border border-dashed border-base-content/30 rounded mb-4 overflow-y-auto flex-grow"
         role="log" aria-label="Chat History" aria-live="polite"
-        style={{ minHeight: '300px' }}
+        style={{ minHeight: '300px' }} // Ensure it has a minimum height to be scrollable
       >
         {messagesToDisplay.length === 0 ? (
           <div className="text-center py-12 text-base-content/60">
@@ -336,19 +372,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
             </div>
           </div>
         ) : (
-          messagesToDisplay.map((msg) => (
+          messagesToDisplay.map((msg: ChatMessageData) => ( // Explicitly type msg
             <ChatMessageComponent key={msg.id} message={msg} />
           ))
         )}
       </div>
 
-      {/* Enhanced Input Area */}
       <form
         onSubmit={handleSubmit}
         className="flex flex-col items-center w-full max-w-4xl m-auto justify-center bg-zinc-800 rounded-lg p-4 z-10 flex-none shadow-lg"
         role="region" aria-label="Chat Input Area" id="ChatInputContainer"
       >
-        {/* File upload indicator */}
         {isMultiModal && uploadedFiles.length > 0 && (
           <div className="w-full mb-2 p-2 bg-primary/10 rounded border border-primary/30">
             <div className="flex items-center gap-2 text-sm">
@@ -356,7 +390,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
               <span>📎 Attached: {uploadedFiles.map(f => f.name).join(', ')}</span>
               <button
                 type="button"
-                onClick={() => setIsMultiModal(false)}
+                onClick={() => {
+                  useCollaborationStore.getState().clearUploadedFiles(); // Assuming you add this to your store
+                  setIsMultiModal(false);
+                }}
                 className="btn btn-xs btn-ghost ml-auto"
               >
                 ✕
@@ -372,14 +409,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
             onChange={handleInputChange}
             placeholder={placeholderText}
             className={`textarea flex-grow resize-none rounded-md p-3 bg-base-300 border border-transparent focus:border-primary focus:ring-primary transition-all duration-200 ${
-              control.isCollaborating && !control.isPaused ? 'bg-base-100 text-base-content/60' : ''
+              (control.isCollaborating && !control.isPaused) || connectionStatus !== 'connected' ? 'bg-base-100 text-base-content/60 cursor-not-allowed' : ''
             }`}
-            rows={message.split('\n').length > 1 ? Math.min(message.split('\n').length, 4) : 1}
+            rows={Math.min(message.split('\n').length, 4) || 1}
             onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 if (canSubmit) {
-                  (e.target as HTMLTextAreaElement).form?.requestSubmit();
+                  // Directly call handleSubmit instead of form.requestSubmit() for better control
+                  handleSubmit(e as any); // Cast 'e' if TypeScript complains about event type mismatch
                 }
               }
             }}
@@ -395,16 +433,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
             
             <SettingsDrawer
               trigger={ 
-                <button className="btn btn-sm btn-ghost p-1 tooltip tooltip-top" data-tip="⚙️ Settings" aria-label="Open Settings Drawer">
+                <button type="button" className="btn btn-sm btn-ghost p-1 tooltip tooltip-top" data-tip="⚙️ Settings" aria-label="Open Settings Drawer">
                   <Settings size={16} />
                 </button> 
               }
+              // These props seem to be for display inside the drawer, not for setting values back directly to ChatInterface state
+              // The actual state updates are handled by CollaborationSettings component's props.
               worker1Name={worker1Name} worker1Model={worker1Model} worker1Role={'worker'}
               worker2Name={worker2Name} worker2Model={worker2Model} worker2Role={'reviewer'}
               turns={turns}
-              onAcceptSettings={() => {
-                console.log('Settings accepted:', { worker1Name, worker1Model, worker2Name, worker2Model, turns });
-              }}
+              onAcceptSettings={() => { /* Settings are applied via state setters in CollaborationSettings */ }}
             >
               <CollaborationSettings
                 worker1Name={worker1Name} setWorker1Name={setWorker1Name}
@@ -457,6 +495,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
                 onClick={handleClearChat}
                 className="btn btn-xs btn-ghost p-1 tooltip tooltip-top" 
                 data-tip="🗑️ Clear Chat"
+                aria-label="Clear Chat"
               >
                 <Trash2 size={14} />
               </button>

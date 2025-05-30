@@ -309,13 +309,28 @@ document.addEventListener('DOMContentLoaded', function() {
             {tab.id === 'execute' ? (
               <CodeExecutionEnvironment />
             ) : (
-              <div className="p-4 h-full w-full flex flex-col">
-                <textarea
-                  value={getCurrentCode()}
-                  onChange={(e) => handleCodeChange(e.target.value)}
-                  className="flex-grow w-full bg-zinc-900 text-green-400 font-mono text-sm p-4 border border-zinc-600 rounded resize-none focus:outline-none focus:border-green-500"
-                  placeholder={`Enter your ${tab.title} code here...`}
-                  spellCheck={false}
+              <div className="h-full w-full">
+                <MockupCode
+                  code={getCurrentCode()}
+                  language={tab.id === 'css' ? 'css' : tab.id === 'js' ? 'javascript' : 'html'}
+                  onChange={handleCodeChange}
+                  readOnly={false}
+                  height="100%"
+                  width="100%"
+                  options={{
+                    fontSize: 14,
+                    minimap: { enabled: false },
+                    wordWrap: 'on',
+                    automaticLayout: true,
+                    scrollBeyondLastLine: false,
+                    padding: { top: 16, bottom: 16 },
+                    lineNumbersMinChars: 3,
+                    renderLineHighlight: 'all',
+                    scrollbar: {
+                      vertical: 'auto',
+                      horizontal: 'auto',
+                    },
+                  }}
                 />
               </div>
             )}
