@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { FileCode2, FileStack, ScrollText, Play, Save, Upload, Download } from 'lucide-react';
+import { FileCode2, FileStack, ScrollText, Play, Save, Upload, Download, Terminal } from 'lucide-react';
 import MockupCode from './MockupCode';
+import CodeExecutionEnvironment from '../Advanced/CodeExecutionEnvironment';
 import { useCollaborationStore } from '../../store/collaborationStore';
 
 const SUB_TABS = [
