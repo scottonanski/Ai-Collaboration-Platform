@@ -20,6 +20,11 @@ const SUB_TABS = [
     title: 'JavaScript',
     icon: <ScrollText size={14} strokeWidth={'0.75'}/>,
   },
+  {
+    id: 'execute',
+    title: 'Execute',
+    icon: <Terminal size={14} strokeWidth={'0.75'}/>,
+  },
 ];
 
 const CodeSubTabs: React.FC = () => {
