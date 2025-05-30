@@ -309,6 +309,16 @@ export class CollaborationService {
             message: accumulatedResponse, 
             streaming: false 
           });
+          
+          // Process the AI response for code blocks and file creation
+          if (accumulatedResponse.trim()) {
+            try {
+              await processCodeFromResponse(accumulatedResponse);
+            } catch (error) {
+              console.error('Error processing code from AI response:', error);
+            }
+          }
+          
           this.abortController = null;
         }
 
