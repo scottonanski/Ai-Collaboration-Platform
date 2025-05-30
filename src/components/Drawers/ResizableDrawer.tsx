@@ -115,6 +115,9 @@ const ResizableDrawer: React.FC<ResizableDrawerProps> = ({
       case 'web':
         return <WebBrowserPanel />;
         
+      case 'mindmap':
+        return <MindMapVisualizer />;
+        
       case 'memory':
         return <AdvancedMemoryManager />;
         
