@@ -195,21 +195,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, [htmlCode, cssCode, jsCode, setCodeContent]);
 
-  const handleCodeChange = (value: string) => {
-    switch (activeTab) {
-      case 'html':
-        setHtmlCode(value);
-        break;
-      case 'css':
-        setCssCode(value);
-        break;
-      case 'js':
-        setJsCode(value);
-        break;
-    }
-  };
-
   const getCurrentCode = () => {
+    // If there's an active file, get its content
+    if (activeFileId) {
+      const file = getFileById(activeFileId);
+      return file?.content || '';
+    }
+    
+    // Otherwise, use the default code tabs
     switch (activeTab) {
       case 'html':
         return htmlCode;
@@ -219,6 +212,43 @@ document.addEventListener('DOMContentLoaded', function() {
         return jsCode;
       default:
         return '';
+    }
+  };
+
+  const handleCodeChange = (value: string) => {
+    // If there's an active file, update its content
+    if (activeFileId) {
+      updateFile(activeFileId, { content: value });
+    } else {
+      // Otherwise, update the default code tabs
+      switch (activeTab) {
+        case 'html':
+          setHtmlCode(value);
+          break;
+        case 'css':
+          setCssCode(value);
+          break;
+        case 'js':
+          setJsCode(value);
+          break;
+      }
+    }
+  };
+
+  const getCurrentLanguage = () => {
+    if (activeFileId) {
+      const file = getFileById(activeFileId);
+      return file ? getLanguageFromExtension(file.name) : 'plaintext';
+    }
+    
+    switch (activeTab) {
+      case 'css':
+        return 'css';
+      case 'js':
+        return 'javascript';
+      case 'html':
+      default:
+        return 'html';
     }
   };
 
