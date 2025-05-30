@@ -6,7 +6,7 @@ import ChatMessageComponent from './ChatMessage';
 import { OPENAI_MODELS, getOpenAIApiKeys } from '../../services/openaiService';
 import SettingsDrawer from '../Drawers/SettingsDrawer';
 import CollaborationSettings from '../Drawers/CollaborationSettings';
-import { Settings, Folder, Eye, SendHorizontal, Pause, Play, Trash2, Zap, Brain, Sparkles, Upload } from 'lucide-react';
+import { Settings, Eye, SendHorizontal, Pause, Play, Trash2, Zap, Brain, Sparkles, Upload } from 'lucide-react';
 import { nanoid } from 'nanoid';
 
 interface ChatInterfaceProps {
