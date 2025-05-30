@@ -250,7 +250,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
     placeholderText = '🤖 Collaboration in progress... Waiting for response...';
   }
   if (connectionStatus !== 'connected') {
-    placeholderText = '❌ Model Connection Error. Please check settings/server.';
+    placeholderText = '❌ OpenAI API Key Error. Please check environment variables.';
   }
 
   let statusMessage = '';
