@@ -1,7 +1,5 @@
 import React, { Dispatch, SetStateAction, useEffect } from 'react';
 import WorkerForm from '../WorkerForm/WorkerForm';
-import ApiKeyForm from '../ApiKeyForm/ApiKeyForm';
-
 
 interface CollaborationSettingsProps {
   worker1Name: string;
@@ -13,19 +11,10 @@ interface CollaborationSettingsProps {
   worker2Model: string;
   setWorker2Model: Dispatch<SetStateAction<string>>;
   availableModels: string[];
-  api1Provider: string;
-  setApi1Provider: Dispatch<SetStateAction<string>>;
-  api2Provider: string;
-  setApi2Provider: Dispatch<SetStateAction<string>>;
   turns: number;
   setTurns: Dispatch<SetStateAction<number>>;
-
   requestSummary: boolean;
   setRequestSummary: Dispatch<SetStateAction<boolean>>;
-  apiKey1: string;
-  setApiKey1: Dispatch<SetStateAction<string>>;
-  apiKey2: string;
-  setApiKey2: Dispatch<SetStateAction<string>>;
   isLoadingModels: boolean;
   resumeOnInterjection: boolean;
   setResumeOnInterjection: Dispatch<SetStateAction<boolean>>;
