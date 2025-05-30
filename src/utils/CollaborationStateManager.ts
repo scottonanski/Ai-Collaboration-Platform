@@ -1,4 +1,4 @@
-import { CollaborationState } from "../services/CollaborationService";
+import { CollaborationState } from "../collaborationTypes";
 
 export const CollaborationStateManager = {
   save(state: CollaborationState): void {

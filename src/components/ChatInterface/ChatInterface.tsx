@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useCollaborationStore } from '../../store/collaborationStore';
-import { ChatMessage as ChatMessageData, CollaborationState, CollaborationServiceActions } from '../../collaborationTypes'; // Renamed ChatMessage type
+import { ChatMessage as ChatMessageData, CollaborationState, CollaborationServiceActions } from '../../collaborationTypes';
 import { CollaborationService } from '../../services/CollaborationService';
-import ChatMessageComponent from './ChatMessage'; // This is the memoized component
-import { checkOllamaConnection, fetchOllamaModels } from '../../services/ollamaServices';
+import ChatMessageComponent from './ChatMessage';
+import { OPENAI_MODELS, getOpenAIApiKeys } from '../../services/openaiService';
 import SettingsDrawer from '../Drawers/SettingsDrawer';
 import CollaborationSettings from '../Drawers/CollaborationSettings';
 import { Settings, Folder, Eye, SendHorizontal, Pause, Play, Trash2, Zap, Brain, Sparkles, Upload } from 'lucide-react';
@@ -32,23 +32,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
   const [isSending, setIsSending] = useState(false);
   const submissionLock = useRef(false);
   const lastSubmissionTime = useRef(0);
-  const [models, setModels] = useState<string[]>([]);
-  const [isLoadingModels, setIsLoadingModels] = useState(true);
+  const [models, setModels] = useState<string[]>(OPENAI_MODELS);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [worker1Name, setWorker1Name] = useState(aiWorkers.worker1.name);
-  const [worker1Model, setWorker1Model] = useState('');
+  const [worker1Model, setWorker1Model] = useState(aiWorkers.worker1.model);
   const [worker2Name, setWorker2Name] = useState(aiWorkers.worker2.name);
-  const [worker2Model, setWorker2Model] = useState('');
+  const [worker2Model, setWorker2Model] = useState(aiWorkers.worker2.model);
   const [turns, setTurns] = useState(3);
   const [requestSummary, setRequestSummary] = useState(true);
-  const [api1Provider, setApi1Provider] = useState('ollama');
-  const [api2Provider, setApi2Provider] = useState('ollama');
-  const [apiKey1, setApiKey1] = useState('');
-  const [apiKey2, setApiKey2] = useState('');
   const [resumeOnInterjection, setResumeOnInterjection] = useState(true);
-  const [summaryModel, setSummaryModel] = useState('');
+  const [summaryModel, setSummaryModel] = useState(OPENAI_MODELS[0]);
   
   const [collaborationMode, setCollaborationMode] = useState<'turn-based' | 'parallel' | 'hierarchical'>('turn-based');
   const [isMultiModal, setIsMultiModal] = useState(false);
+
+  // Load API keys from environment
+  const { worker1: apiKey1, worker2: apiKey2 } = getOpenAIApiKeys();
+  
+  // Debug: Log environment variables
+  console.log('Environment variables:', {
+    worker1Key: import.meta.env.VITE_OPENAI_API_KEY_WORKER1 ? 'Present' : 'Missing',
+    worker2Key: import.meta.env.VITE_OPENAI_API_KEY_WORKER2 ? 'Present' : 'Missing'
+  });
+  console.log('API Keys from getOpenAIApiKeys():', { apiKey1: apiKey1 ? 'Present' : 'Missing', apiKey2: apiKey2 ? 'Present' : 'Missing' });
 
   const collaborationServiceRef = useRef<CollaborationService | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -65,39 +71,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
       storeActions, 
       requestSummary,
       apiKey1,
-      apiKey2,
-      api1Provider as 'ollama' | 'openai',
-      api2Provider as 'ollama' | 'openai'
+      apiKey2
     );
-  }, [requestSummary, apiKey1, apiKey2, api1Provider, api2Provider]); // Dependencies ensure service is updated with new configs
+  }, [requestSummary, apiKey1, apiKey2]);
 
   useEffect(() => {
-    const checkConnection = async () => {
-      setIsLoadingModels(true);
-      const status = await checkOllamaConnection();
-      // console.log('Ollama connection status:', status); // Removed for performance
-      setConnectionStatus(status);
-
-      if (status === 'connected') {
-        try {
-          const fetchedModels = await fetchOllamaModels();
-          // console.log('Fetched models in ChatInterface:', fetchedModels); // Removed for performance
-          setModels(fetchedModels);
-          if (fetchedModels.length > 0) {
-            if (!worker1Model) setWorker1Model(fetchedModels[0]);
-            if (!worker2Model) setWorker2Model(fetchedModels.length > 1 ? fetchedModels[1] : fetchedModels[0]);
-            if (!summaryModel) setSummaryModel(fetchedModels[0]);
-          }
-        } catch (error) {
-          console.error("Failed to fetch Ollama models:", error);
-          setConnectionStatus('disconnected');
-        }
-      }
-      setIsLoadingModels(false);
-    };
-
-    checkConnection();
-  }, [setConnectionStatus, worker1Model, worker2Model, summaryModel]); // Added model states to potentially re-check/re-set if they were initially empty
+    // Set connection status based on API key availability
+    const hasValidKeys = apiKey1 && apiKey2;
+    setConnectionStatus(hasValidKeys ? 'connected' : 'disconnected');
+    
+    // Set OpenAI models as available
+    setModels(OPENAI_MODELS);
+    setIsLoadingModels(false);
+  }, [apiKey1, apiKey2, setConnectionStatus]);
 
   const messagesToDisplay = messages; // Assuming `messages` from Zustand is correctly updated immutably
 
@@ -127,12 +113,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
       storeActions,
       requestSummary,
       apiKey1,
-      apiKey2,
-      api1Provider as 'ollama' | 'openai',
-      api2Provider as 'ollama' | 'openai'
+      apiKey2
     );
-    // Actual interjection logic might be handled by handleSubmit or a dedicated service method
-  }, [control.isCollaborating, control.isPaused, requestSummary, apiKey1, apiKey2, api1Provider, api2Provider]);
+  }, [control.isCollaborating, control.isPaused, requestSummary, apiKey1, apiKey2]);
 
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
@@ -151,9 +134,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
       storeActions,
       requestSummary,
       apiKey1,
-      apiKey2,
-      api1Provider as 'ollama' | 'openai',
-      api2Provider as 'ollama' | 'openai'
+      apiKey2
     );
 
     const now = Date.now();
@@ -232,7 +213,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
     isSending, message, control.isPaused, control.isCollaborating, resumeOnInterjection, 
     turns, worker1Model, worker2Model, worker1Name, worker2Name, 
     addMessage, setMessage, collaborationMode, aiWorkers, isMultiModal, uploadedFiles,
-    requestSummary, apiKey1, apiKey2, api1Provider, api2Provider // Added service config dependencies
+    requestSummary, apiKey1, apiKey2
   ]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -276,7 +257,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
     placeholderText = '🤖 Collaboration in progress... Waiting for response...';
   }
   if (connectionStatus !== 'connected') {
-    placeholderText = '❌ Model Connection Error. Please check settings/server.';
+    placeholderText = '❌ OpenAI API Key Error. Please check environment variables.';
   }
 
   let statusMessage = '';
@@ -450,12 +431,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
                 worker2Name={worker2Name} setWorker2Name={setWorker2Name}
                 worker2Model={worker2Model} setWorker2Model={setWorker2Model}
                 availableModels={models} isLoadingModels={isLoadingModels}
-                api1Provider={api1Provider} setApi1Provider={setApi1Provider}
-                api2Provider={api2Provider} setApi2Provider={setApi2Provider}
                 turns={turns} setTurns={setTurns}
                 requestSummary={requestSummary} setRequestSummary={setRequestSummary}
-                apiKey1={apiKey1} setApiKey1={setApiKey1}
-                apiKey2={apiKey2} setApiKey2={setApiKey2}
                 resumeOnInterjection={resumeOnInterjection} setResumeOnInterjection={setResumeOnInterjection}
                 summaryModel={summaryModel} setSummaryModel={setSummaryModel}
               />
@@ -485,7 +462,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
           </div>
           
           <span className={`text-xs h-4 flex-grow text-center px-4 ${connectionStatus === 'connected' ? 'text-success' : 'text-error'}`}>
-            {connectionStatus === 'connected' ? statusMessage : '❌ Failed to connect'}
+            {connectionStatus === 'connected' ? statusMessage : '❌ OpenAI API Keys not configured'}
           </span>
           
           <div className="flex flex-col items-end" id="chat-control-buttons-wrapper">

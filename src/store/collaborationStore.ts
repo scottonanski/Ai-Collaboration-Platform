@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ChatMessage, CollaborationState } from '../collaborationTypes';
+import { OPENAI_MODELS, DEFAULT_SETTINGS } from '../services/openaiService';
 
 interface CodeContent {
   html: string;
@@ -41,6 +42,7 @@ interface CollaborationStore extends CollaborationState {
   uploadedFiles: File[];
   addUploadedFile: (file: File) => void;
   removeUploadedFile: (fileName: string) => void;
+  clearUploadedFiles: () => void;
   
   // Advanced memory
   contextMemory: {
@@ -82,6 +84,9 @@ export const useCollaborationStore = create<CollaborationStore>()(
     (set, get) => ({
       // Base state
       messages: [],
+      memory: {
+        workingMemory: []
+      },
       control: {
         isCollaborating: false,
         isPaused: false,
@@ -90,7 +95,7 @@ export const useCollaborationStore = create<CollaborationStore>()(
         currentPhase: 'idle',
       },
       connectionStatus: 'disconnected',
-      settings: {},
+      settings: DEFAULT_SETTINGS, // Use OpenAI default settings
       
       // Enhanced features
       codeContent: {
@@ -146,14 +151,14 @@ export const useCollaborationStore = create<CollaborationStore>()(
       aiWorkers: {
         worker1: {
           name: 'Alice',
-          model: '',
+          model: DEFAULT_SETTINGS.worker1Model, // Use default OpenAI model
           role: 'Developer',
           specialization: 'Frontend Development',
           customInstructions: 'Focus on user experience and clean, maintainable code.'
         },
         worker2: {
           name: 'Bob',
-          model: '',
+          model: DEFAULT_SETTINGS.worker2Model, // Use default OpenAI model
           role: 'Analyst',
           specialization: 'Code Review & Optimization',
           customInstructions: 'Analyze code quality, performance, and suggest improvements.'
@@ -177,14 +182,18 @@ export const useCollaborationStore = create<CollaborationStore>()(
           ),
         })),
         
-      setMessages: (messages) => set({ messages }),
+      setMessages: (messages) => {
+        set({ messages });
+      },
       
       setControl: (control) =>
         set((state) => ({
           control: { ...state.control, ...control },
         })),
         
-      setConnectionStatus: (connectionStatus) => set({ connectionStatus }),
+      setConnectionStatus: (connectionStatus) => {
+        set({ connectionStatus });
+      },
       
       setSettings: (settings) =>
         set((state) => ({
@@ -251,6 +260,10 @@ export const useCollaborationStore = create<CollaborationStore>()(
         set((state) => ({
           uploadedFiles: state.uploadedFiles.filter(f => f.name !== fileName)
         })),
+
+      clearUploadedFiles: () => {
+        set({ uploadedFiles: [] });
+      },
       
       addToMemory: (type, content) =>
         set((state) => ({

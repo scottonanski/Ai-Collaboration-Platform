@@ -6,7 +6,7 @@ export interface ChatMessage {
   role: "user" | "assistant" | "system";
   message: string;
   createdAt: string;
-  type: "message";
+  type: "message" | "system";
   streaming?: boolean; // Optional flag for streaming animation
 }
 
@@ -17,15 +17,16 @@ export interface MemoryChunk {
 
 export interface MemorySystemState {
   workingMemory: ChatMessage[];
+  strategicMemory?: any[]; // Add strategicMemory property  
 }
 
 export interface CollaborationControlState {
-  currentModel: string;
-  otherModel: string;
+  currentModel?: string;
+  otherModel?: string;
   isCollaborating: boolean;
   isPaused: boolean;
   currentPhase: 'idle' | 'processing' | 'awaitingInput' | 'reviewing' | 'completed' | 'error';
-  currentRole: 'worker' | 'reviewer';
+  currentRole?: 'worker' | 'reviewer';
   currentTurn: number;
   totalTurns: number;
 }
@@ -36,8 +37,16 @@ export type MessagePart =
   | { type: 'incompleteCode'; language: string; code: string };
 
 export interface CollaborationState {
+  messages: ChatMessage[];
   memory: MemorySystemState;
   control: CollaborationControlState;
+  connectionStatus: 'connected' | 'disconnected' | 'connecting';
+  settings: {
+    provider: string;
+    worker1Model: string;
+    worker2Model: string;
+    refinerModel: string;
+  };
 }
 
 export interface CollaborationTask {
