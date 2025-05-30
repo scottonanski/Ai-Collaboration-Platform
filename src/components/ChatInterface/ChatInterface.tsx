@@ -424,12 +424,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
                 worker2Name={worker2Name} setWorker2Name={setWorker2Name}
                 worker2Model={worker2Model} setWorker2Model={setWorker2Model}
                 availableModels={models} isLoadingModels={isLoadingModels}
-                api1Provider={api1Provider} setApi1Provider={setApi1Provider}
-                api2Provider={api2Provider} setApi2Provider={setApi2Provider}
                 turns={turns} setTurns={setTurns}
                 requestSummary={requestSummary} setRequestSummary={setRequestSummary}
-                apiKey1={apiKey1} setApiKey1={setApiKey1}
-                apiKey2={apiKey2} setApiKey2={setApiKey2}
                 resumeOnInterjection={resumeOnInterjection} setResumeOnInterjection={setResumeOnInterjection}
                 summaryModel={summaryModel} setSummaryModel={setSummaryModel}
               />
