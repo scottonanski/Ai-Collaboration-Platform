@@ -111,35 +111,98 @@ export const useCollaborationStore = create<CollaborationStore>()(
       },
       
       fileSystem: [
-        {
-          id: 'root',
-          name: 'Project',
-          type: 'folder',
-          path: '/',
-          children: [
-            {
-              id: 'src',
-              name: 'src',
-              type: 'folder',
-              path: '/src',
-              children: [
-                { id: 'index-html', name: 'index.html', type: 'file', path: '/src/index.html', content: '<!DOCTYPE html>...' },
-                { id: 'style-css', name: 'style.css', type: 'file', path: '/src/style.css', content: '/* Styles */' },
-                { id: 'app-js', name: 'app.js', type: 'file', path: '/src/app.js', content: '// JavaScript' }
-              ]
-            },
-            {
-              id: 'docs',
-              name: 'docs',
-              type: 'folder',
-              path: '/docs',
-              children: [
-                { id: 'readme', name: 'README.md', type: 'file', path: '/docs/README.md', content: '# Project Documentation' }
-              ]
-            }
-          ]
-        }
-      ],
+      {
+        id: 'sample-html',
+        name: 'index.html',
+        type: 'file',
+        content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Collaboration Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to AI Collaboration Platform</h1>
+        <p>This is a sample HTML file. Click on files in the file tree to edit them!</p>
+        <button id="demo-btn" onclick="demoFunction()">Click me!</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>`,
+        size: 512,
+        lastModified: new Date().toISOString()
+      },
+      {
+        id: 'sample-css',
+        name: 'styles.css',
+        type: 'file',
+        content: `.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+}
+
+h1 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+p {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+#demo-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+#demo-btn:hover {
+    background-color: #0056b3;
+}`,
+        size: 256,
+        lastModified: new Date().toISOString()
+      },
+      {
+        id: 'sample-js',
+        name: 'script.js',
+        type: 'file',
+        content: `function demoFunction() {
+    alert('Hello from the AI Collaboration Platform!');
+    console.log('Button clicked at:', new Date().toLocaleString());
+}
+
+// Add some interactive functionality
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('AI Collaboration Platform loaded successfully!');
+    
+    // You can add more JavaScript functionality here
+    const btn = document.getElementById('demo-btn');
+    if (btn) {
+        btn.addEventListener('mouseover', function() {
+            this.style.transform = 'scale(1.05)';
+        });
+        
+        btn.addEventListener('mouseout', function() {
+            this.style.transform = 'scale(1)';
+        });
+    }
+});`,
+        size: 512,
+        lastModified: new Date().toISOString()
+      }
+    ],
       openFiles: [],
       activeFileId: null,
       
