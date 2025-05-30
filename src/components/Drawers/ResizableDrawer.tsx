@@ -260,35 +260,54 @@ const ResizableDrawer: React.FC<ResizableDrawerProps> = ({
               title="Preview & Tools"
             />
 
-            {/* Main Tabs Navigation */}
-            <nav className="flex-shrink-0 border-b border-zinc-600">
-              <div role="tablist" className="flex overflow-x-auto">
-                {MAIN_TABS.map((tab) => {
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={isActive}
-                      className={`flex items-center gap-2 px-4 py-3 text-sm border-b-2 transition-colors whitespace-nowrap ${
-                        isActive
-                          ? 'border-primary text-primary bg-zinc-700'
-                          : 'border-transparent text-zinc-400 hover:text-white hover:bg-zinc-700'
-                      }`}
-                      onClick={() => setActiveTab(tab.id)}
-                    >
-                      {tab.icon}
-                      <span>{tab.title}</span>
-                    </button>
-                  );
-                })}
+            {/* Split Layout: File Tree + Tabs */}
+            <div className="flex flex-row flex-grow overflow-hidden">
+              {/* File Tree Column */}
+              <div className="w-80 flex-shrink-0 border-r border-zinc-600 bg-zinc-800">
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Folder size={16} color='white' strokeWidth="0.75"/>
+                    <h3 className="text-sm font-medium text-zinc-200">Project Files</h3>
+                  </div>
+                </div>
+                <div className="flex-grow overflow-y-auto h-full">
+                  <FileTree nodes={fileSystem} onFileSelect={handleFileSelect} />
+                </div>
               </div>
-            </nav>
 
-            {/* Tab Content */}
-            <div className="flex-grow overflow-hidden">
-              {renderTabContent()}
+              {/* Main Content Column */}
+              <div className="flex-grow flex flex-col overflow-hidden">
+                {/* Main Tabs Navigation */}
+                <nav className="flex-shrink-0 border-b border-zinc-600">
+                  <div role="tablist" className="flex overflow-x-auto">
+                    {MAIN_TABS.map((tab) => {
+                      const isActive = activeTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={isActive}
+                          className={`flex items-center gap-2 px-4 py-3 text-sm border-b-2 transition-colors whitespace-nowrap ${
+                            isActive
+                              ? 'border-primary text-primary bg-zinc-700'
+                              : 'border-transparent text-zinc-400 hover:text-white hover:bg-zinc-700'
+                          }`}
+                          onClick={() => setActiveTab(tab.id)}
+                        >
+                          {tab.icon}
+                          <span>{tab.title}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </nav>
+
+                {/* Tab Content */}
+                <div className="flex-grow overflow-hidden">
+                  {renderTabContent()}
+                </div>
+              </div>
             </div>
           </section>
         </nav>
