@@ -14,8 +14,8 @@ class AICollaborationPlatformBackendTest(unittest.TestCase):
     
     def setUp(self):
         """Set up test environment."""
-        # Backend API URL - use localhost for testing
-        self.backend_url = "http://localhost:8001"
+        # Backend API URL - use environment variable or default to localhost
+        self.backend_url = os.environ.get("VITE_BACKEND_URL", "http://localhost:8001")
         # Frontend URL - use localhost for testing
         self.frontend_url = "http://localhost:3000"
         
