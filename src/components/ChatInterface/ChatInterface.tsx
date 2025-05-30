@@ -13,7 +13,7 @@ interface ChatInterfaceProps {
   previewDrawerId: string;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDrawerId }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ previewDrawerId }) => {
   const messages = useCollaborationStore((state) => state.messages);
   const control = useCollaborationStore((state) => state.control);
   const connectionStatus = useCollaborationStore((state) => state.connectionStatus);
