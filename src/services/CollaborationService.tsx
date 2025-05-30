@@ -258,11 +258,11 @@ Please provide working code solutions that demonstrate the concepts being discus
         } else {
             const lastMessage = workingMemory.length > 0 ? workingMemory[workingMemory.length - 1] : null;
             if (!lastMessage || lastMessage.senderName === currentWorkerConfig.name) {
-                 promptContent = "Continue the task based on the full conversation history.";
+                 promptContent = "Continue the task based on the full conversation history. If appropriate, provide working code examples with proper code blocks.";
             } else {
                 promptContent = currentWorkerConfig.role === 'worker'
-                ? `Based on the previous discussion, particularly "${lastMessage.message}", continue your work.`
-                : `Review the latest work: "${lastMessage.message}", and provide feedback or next steps.`;
+                ? `Based on the previous discussion, particularly "${lastMessage.message}", continue your work. Please provide concrete code examples in proper code blocks when relevant.`
+                : `Review the latest work: "${lastMessage.message}", and provide feedback or next steps. If suggesting improvements, provide actual code examples.`;
             }
         }
         
