@@ -20,6 +20,14 @@ const FolderDrawer: React.FC<FolderDrawerProps> = ({
   style,
   zIndex = 100,
 }) => {
+  const fileSystem = useCollaborationStore((state) => state.fileSystem);
+  
+  const handleFileSelect = (node: FileTreeNodeData) => {
+    console.log('File selected:', node);
+    // Here you could open the file in the code editor
+    // or trigger other actions based on the file type
+  };
+
   return (
     <aside
       className={`drawer drawer-start${className ? ' ' + className : ''}`}
@@ -36,7 +44,7 @@ const FolderDrawer: React.FC<FolderDrawerProps> = ({
         className="drawer-side"
         style={{ zIndex }}
         aria-label="Project Files Sidebar"
-        role="region" // Using region is okay here for the overall sidebar content area
+        role="region"
         data-element="drawer-side"
       >
         <label
@@ -44,21 +52,19 @@ const FolderDrawer: React.FC<FolderDrawerProps> = ({
           aria-label="Close Project Files Sidebar"
           className="drawer-overlay"
         />
-        {/* Changed section classes slightly for better fit */}
         <section
-          className="bg-zinc-800 text-base-content min-h-full w-80 p-4 pt-8 flex flex-col" // Use flex-col
+          className="bg-zinc-800 text-base-content min-h-full w-80 flex flex-col"
           aria-label="Project Files List"
           role="region"
           data-element="sidebar-content"
         >
-          {/* Header remains */}
-          <DrawerHeader icon={<Folder size={16} color='white' strokeWidth="0.75"/>} title="Project Files"/>
-
-          {/* Render the FileTree component here */}
-          <div className="mt-4 flex-grow overflow-y-auto"> {/* Add margin-top, allow growth and scrolling */}
-            <FileTree nodes={placeholderTreeData} /> {/* Use updated data */}
+          <div className="p-4 pt-8">
+            <DrawerHeader icon={<Folder size={16} color='white' strokeWidth="0.75"/>} title="Project Files"/>
           </div>
 
+          <div className="flex-grow overflow-y-auto">
+            <FileTree nodes={fileSystem} onFileSelect={handleFileSelect} />
+          </div>
         </section>
       </nav>
     </aside>
