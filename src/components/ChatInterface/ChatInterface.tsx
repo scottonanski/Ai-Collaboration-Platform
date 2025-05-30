@@ -106,12 +106,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
       storeActions,
       requestSummary,
       apiKey1,
-      apiKey2,
-      api1Provider as 'ollama' | 'openai',
-      api2Provider as 'ollama' | 'openai'
+      apiKey2
     );
-    // Actual interjection logic might be handled by handleSubmit or a dedicated service method
-  }, [control.isCollaborating, control.isPaused, requestSummary, apiKey1, apiKey2, api1Provider, api2Provider]);
+  }, [control.isCollaborating, control.isPaused, requestSummary, apiKey1, apiKey2]);
 
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
