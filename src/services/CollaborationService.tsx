@@ -244,7 +244,16 @@ export class CollaborationService {
         let promptContent: string;
 
         if (firstIteration && initialPrompt) {
-            promptContent = initialPrompt;
+            // Enhanced initial prompt to encourage code creation
+            promptContent = `${initialPrompt}
+
+IMPORTANT: When providing solutions, please write actual code files. For any code you provide:
+1. Use proper code blocks with language specification (e.g., \`\`\`html, \`\`\`css, \`\`\`javascript)
+2. Create substantial, working code examples (not just snippets)
+3. If suggesting files, use patterns like "create a file called filename.ext" followed by the code
+4. Focus on creating functional, complete code that can be immediately used
+
+Please provide working code solutions that demonstrate the concepts being discussed.`;
             firstIteration = false;
         } else {
             const lastMessage = workingMemory.length > 0 ? workingMemory[workingMemory.length - 1] : null;
