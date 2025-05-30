@@ -140,6 +140,8 @@ export const useCollaborationStore = create<CollaborationStore>()(
           ]
         }
       ],
+      openFiles: [],
+      activeFileId: null,
       
       uploadedFiles: [],
       
