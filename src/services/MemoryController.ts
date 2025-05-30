@@ -32,7 +32,7 @@ export class MemoryController {
     return {
       compressed: {
         summary: `Summarized: ${summaryContent.substring(0, 50)}...`,
-        timestamp: Date.now(),
+        timestamp: new Date().toISOString(),
       },
       remaining: workingMemory.slice(-2),
     };
