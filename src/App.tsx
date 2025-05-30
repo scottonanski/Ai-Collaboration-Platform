@@ -9,22 +9,30 @@ function App() {
   const folderDrawerId = "FolderDrawer";
   const previewDrawerId = "PreviewDrawer";
 
-  const folderSidebar = ["Folder 1", "File A", "File B"];
-
   return (
     <>
       <FolderDrawer
         id={folderDrawerId}
-        triggerContent={null}
+        mainContent={
+          <div className="h-screen">
+            <ChatInterface
+              folderDrawerId={folderDrawerId}
+              previewDrawerId={previewDrawerId}
+            />
+          </div>
+        }
       />
-      <div className="h-screen">
-        <ChatInterface
-          folderDrawerId={folderDrawerId}
-          previewDrawerId={previewDrawerId}
-        />
-      </div>
-      <ResizableDrawer id={previewDrawerId} triggerContent={null} />
-
+      <ResizableDrawer 
+        id={previewDrawerId} 
+        mainContent={
+          <div className="h-screen">
+            <ChatInterface
+              folderDrawerId={folderDrawerId}
+              previewDrawerId={previewDrawerId}
+            />
+          </div>
+        }
+      />
     </>
   );
 }
