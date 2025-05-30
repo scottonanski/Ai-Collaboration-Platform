@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileCode2, FileStack, ScrollText, Play, Save, Upload, Download, Terminal } from 'lucide-react';
+import { FileCode2, FileStack, ScrollText, Play, Save, Upload, Download, Terminal, X } from 'lucide-react';
 import MockupCode from './MockupCode';
 import CodeExecutionEnvironment from '../Advanced/CodeExecutionEnvironment';
 import { useCollaborationStore } from '../../store/collaborationStore';
