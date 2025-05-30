@@ -278,10 +278,6 @@ export class CollaborationService {
     }
   }
 }
-
-  // Removed checkMemoryLimit as it was empty
-
-  // Modified to accept initialUserMessageId to link with UI-added message
   async startCollaboration(initialUserMessageContent: string, task: CollaborationTask, initialUserMessageId?: string) {
     // console.log(`Service: startCollaboration called with message: "${initialUserMessageContent}"`);
     // console.log("Service: Starting collaboration... Task:", task);
