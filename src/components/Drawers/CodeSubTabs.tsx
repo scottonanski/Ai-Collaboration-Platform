@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { FileCode2, FileStack, ScrollText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FileCode2, FileStack, ScrollText, Play, Save, Upload, Download } from 'lucide-react';
 import MockupCode from './MockupCode';
+import { useCollaborationStore } from '../../store/collaborationStore';
 
 const SUB_TABS = [
   {
@@ -22,6 +23,186 @@ const SUB_TABS = [
 
 const CodeSubTabs: React.FC = () => {
   const [activeTab, setActiveTab] = useState('html');
+  const [htmlCode, setHtmlCode] = useState(`<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Collaboration Demo</title>
+</head>
+<body>
+    <div id="root">
+        <h1>🤖 AI Collaboration Workspace</h1>
+        <p>This is a live preview of your collaborative work!</p>
+        <div class="demo-section">
+            <h2>Interactive Demo</h2>
+            <button id="clickMe" class="demo-btn">Click me!</button>
+            <p id="output">Ready for collaboration...</p>
+        </div>
+    </div>
+</body>
+</html>`);
+
+  const [cssCode, setCssCode] = useState(`body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    min-height: 100vh;
+}
+
+#root {
+    max-width: 800px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 30px;
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+h1 {
+    text-align: center;
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.demo-section {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+.demo-btn {
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.demo-btn:hover {
+    background: #ff5252;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+#output {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    font-weight: bold;
+}`);
+
+  const [jsCode, setJsCode] = useState(`// AI Collaboration Demo JavaScript
+let clickCount = 0;
+const responses = [
+    "🎯 Great collaboration!",
+    "🚀 AI-Human teamwork!",
+    "💡 Ideas flowing!",
+    "🔥 Building amazing things!",
+    "⚡ Innovation in action!",
+    "🎨 Creative collaboration!",
+    "🛠️ Making it happen!"
+];
+
+document.addEventListener('DOMContentLoaded', function() {
+    const button = document.getElementById('clickMe');
+    const output = document.getElementById('output');
+    
+    if (button && output) {
+        button.addEventListener('click', function() {
+            clickCount++;
+            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+            output.textContent = \`\${randomResponse} (Click #\${clickCount})\`;
+            
+            // Add some visual flair
+            output.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                output.style.transform = 'scale(1)';
+            }, 200);
+        });
+    }
+    
+    // Auto-update timestamp
+    setInterval(() => {
+        const now = new Date().toLocaleTimeString();
+        const timeDisplay = document.getElementById('timeDisplay');
+        if (!timeDisplay) {
+            const time = document.createElement('div');
+            time.id = 'timeDisplay';
+            time.style.cssText = 'position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; font-size: 12px;';
+            document.body.appendChild(time);
+        }
+        document.getElementById('timeDisplay').textContent = \`Live: \${now}\`;
+    }, 1000);
+});`);
+
+  // Store codes in collaboration store for preview component
+  const setCodeContent = useCollaborationStore((state) => state.setCodeContent);
+  
+  useEffect(() => {
+    if (setCodeContent) {
+      setCodeContent({ html: htmlCode, css: cssCode, js: jsCode });
+    }
+  }, [htmlCode, cssCode, jsCode, setCodeContent]);
+
+  const handleCodeChange = (value: string) => {
+    switch (activeTab) {
+      case 'html':
+        setHtmlCode(value);
+        break;
+      case 'css':
+        setCssCode(value);
+        break;
+      case 'js':
+        setJsCode(value);
+        break;
+    }
+  };
+
+  const getCurrentCode = () => {
+    switch (activeTab) {
+      case 'html':
+        return htmlCode;
+      case 'css':
+        return cssCode;
+      case 'js':
+        return jsCode;
+      default:
+        return '';
+    }
+  };
+
+  const downloadCode = () => {
+    const content = getCurrentCode();
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `code.${activeTab}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const uploadFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        handleCodeChange(content);
+      };
+      reader.readAsText(file);
+    }
+  };
 
   return (
     <section
@@ -77,6 +258,30 @@ const CodeSubTabs: React.FC = () => {
         </div>
       </nav>
 
+      {/* Code Actions Toolbar */}
+      <div className="flex-shrink-0 bg-zinc-900 border-b border-zinc-600 p-2 flex items-center gap-2">
+        <button
+          onClick={downloadCode}
+          className="btn btn-xs btn-ghost tooltip tooltip-bottom"
+          data-tip="Download current file"
+        >
+          <Download size={12} />
+        </button>
+        <label className="btn btn-xs btn-ghost tooltip tooltip-bottom cursor-pointer" data-tip="Upload file">
+          <Upload size={12} />
+          <input
+            type="file"
+            className="hidden"
+            onChange={uploadFile}
+            accept={`.${activeTab}`}
+          />
+        </label>
+        <div className="flex-grow"></div>
+        <span className="text-xs text-zinc-400">
+          {getCurrentCode().split('\n').length} lines
+        </span>
+      </div>
+
       <div
         className="relative flex-grow overflow-hidden bg-zinc-800"
         aria-label="Code Sub Tab Content"
@@ -95,25 +300,14 @@ const CodeSubTabs: React.FC = () => {
             data-element="sub-tab-panel"
             data-tab-id={tab.id}
           >
-            <div className="p-4 h-full w-full items-center">
-              {tab.id === 'html' && (
-                <MockupCode
-                code={`<!-- No HTML here yet...-->`}
-                language="html"
+            <div className="p-4 h-full w-full flex flex-col">
+              <textarea
+                value={getCurrentCode()}
+                onChange={(e) => handleCodeChange(e.target.value)}
+                className="flex-grow w-full bg-zinc-900 text-green-400 font-mono text-sm p-4 border border-zinc-600 rounded resize-none focus:outline-none focus:border-green-500"
+                placeholder={`Enter your ${tab.title} code here...`}
+                spellCheck={false}
               />
-              )}
-              {tab.id === 'css' && (
-                <MockupCode
-                code={`/* No CSS here yet... */`}
-                language="css"
-              />
-              )}
-              {tab.id === 'js' && (
-              <MockupCode
-              code={`// No JavaScript here yet...`}
-              language="javascript"
-            />
-              )}
             </div>
           </section>
         ))}

@@ -1,60 +1,285 @@
 import { create } from 'zustand';
-import { ChatMessage, CollaborationControlState, CollaborationState } from '../collaborationTypes';
+import { persist } from 'zustand/middleware';
+import { ChatMessage, CollaborationState } from '../collaborationTypes';
 
-interface CollaborationStoreState {
-  messages: ChatMessage[];
-  control: CollaborationControlState;
-  connectionStatus: 'connected' | 'disconnected';
-  settings: Record<string, any>;
-
-  // Actions
-  setMessages: (messages: ChatMessage[]) => void;
-  addMessage: (message: ChatMessage) => void;
-  updateMessage: (id: string, update: Partial<ChatMessage>) => void;
-  setControl: (control: Partial<CollaborationControlState>) => void;
-  setConnectionStatus: (status: 'connected' | 'disconnected') => void;
-  setSettings: (settings: Record<string, any>) => void;
-  reset: () => void;
+interface CodeContent {
+  html: string;
+  css: string;
+  js: string;
 }
 
-export const useCollaborationStore = create<CollaborationStoreState>((set, get) => ({
-  messages: [],
-  control: {
-    currentModel: '',
-    otherModel: '',
-    isCollaborating: false,
-    isPaused: false,
-    currentPhase: 'idle',
-    currentRole: 'worker',
-    currentTurn: 0,
-    totalTurns: 0,
-  },
-  connectionStatus: 'disconnected',
-  settings: {},
+interface FileSystemNode {
+  id: string;
+  name: string;
+  type: 'file' | 'folder';
+  content?: string;
+  children?: FileSystemNode[];
+  path: string;
+}
 
-  setMessages: (messages: ChatMessage[]) => set({ messages }),
-  addMessage: (message: ChatMessage) => set((state: CollaborationStoreState) => ({ messages: [...state.messages, message] })),
-  updateMessage: (id: string, update: Partial<ChatMessage>) => set((state: CollaborationStoreState) => ({
-    messages: state.messages.map((msg: ChatMessage) => (msg.id === id ? { ...msg, ...update } : msg)),
-  })),
-  setControl: (control: Partial<CollaborationControlState>) => set((state: CollaborationStoreState) => ({
-    control: { ...state.control, ...control },
-  })),
-  setConnectionStatus: (status: 'connected' | 'disconnected') => set({ connectionStatus: status }),
-  setSettings: (settings: Record<string, any>) => set({ settings }),
-  reset: () => set({
-    messages: [],
-    control: {
-      currentModel: '',
-      otherModel: '',
-      isCollaborating: false,
-      isPaused: false,
-      currentPhase: 'idle',
-      currentRole: 'worker',
-      currentTurn: 0,
-      totalTurns: 0,
-    },
-    connectionStatus: 'disconnected',
-    settings: {},
-  }),
-}));
+interface CollaborationStore extends CollaborationState {
+  // Actions
+  addMessage: (message: ChatMessage) => void;
+  updateMessage: (id: string, updates: Partial<ChatMessage>) => void;
+  setMessages: (messages: ChatMessage[]) => void;
+  setControl: (control: Partial<CollaborationState['control']>) => void;
+  setConnectionStatus: (status: 'connected' | 'disconnected' | 'connecting') => void;
+  setSettings: (settings: Partial<CollaborationState['settings']>) => void;
+  
+  // Enhanced features
+  codeContent: CodeContent;
+  setCodeContent: (content: CodeContent) => void;
+  
+  // File system
+  fileSystem: FileSystemNode[];
+  setFileSystem: (files: FileSystemNode[]) => void;
+  addFile: (file: FileSystemNode) => void;
+  updateFile: (id: string, updates: Partial<FileSystemNode>) => void;
+  deleteFile: (id: string) => void;
+  
+  // Multi-modal content
+  uploadedFiles: File[];
+  addUploadedFile: (file: File) => void;
+  removeUploadedFile: (fileName: string) => void;
+  
+  // Advanced memory
+  contextMemory: {
+    shortTerm: ChatMessage[];
+    longTerm: string[];
+    summaries: string[];
+  };
+  addToMemory: (type: 'shortTerm' | 'longTerm' | 'summaries', content: any) => void;
+  
+  // Visualization data
+  collaborationFlow: {
+    nodes: any[];
+    edges: any[];
+  };
+  updateCollaborationFlow: (flow: { nodes: any[]; edges: any[] }) => void;
+  
+  // Advanced settings
+  aiWorkers: {
+    worker1: {
+      name: string;
+      model: string;
+      role: string;
+      specialization: string;
+      customInstructions: string;
+    };
+    worker2: {
+      name: string;
+      model: string;
+      role: string;
+      specialization: string;
+      customInstructions: string;
+    };
+  };
+  updateAiWorker: (workerId: 'worker1' | 'worker2', updates: any) => void;
+}
+
+export const useCollaborationStore = create<CollaborationStore>()(
+  persist(
+    (set, get) => ({
+      // Base state
+      messages: [],
+      control: {
+        isCollaborating: false,
+        isPaused: false,
+        currentTurn: 0,
+        totalTurns: 1,
+        currentPhase: 'idle',
+      },
+      connectionStatus: 'disconnected',
+      settings: {},
+      
+      // Enhanced features
+      codeContent: {
+        html: '',
+        css: '',
+        js: ''
+      },
+      
+      fileSystem: [
+        {
+          id: 'root',
+          name: 'Project',
+          type: 'folder',
+          path: '/',
+          children: [
+            {
+              id: 'src',
+              name: 'src',
+              type: 'folder',
+              path: '/src',
+              children: [
+                { id: 'index-html', name: 'index.html', type: 'file', path: '/src/index.html', content: '<!DOCTYPE html>...' },
+                { id: 'style-css', name: 'style.css', type: 'file', path: '/src/style.css', content: '/* Styles */' },
+                { id: 'app-js', name: 'app.js', type: 'file', path: '/src/app.js', content: '// JavaScript' }
+              ]
+            },
+            {
+              id: 'docs',
+              name: 'docs',
+              type: 'folder',
+              path: '/docs',
+              children: [
+                { id: 'readme', name: 'README.md', type: 'file', path: '/docs/README.md', content: '# Project Documentation' }
+              ]
+            }
+          ]
+        }
+      ],
+      
+      uploadedFiles: [],
+      
+      contextMemory: {
+        shortTerm: [],
+        longTerm: [],
+        summaries: []
+      },
+      
+      collaborationFlow: {
+        nodes: [],
+        edges: []
+      },
+      
+      aiWorkers: {
+        worker1: {
+          name: 'Alice',
+          model: '',
+          role: 'Developer',
+          specialization: 'Frontend Development',
+          customInstructions: 'Focus on user experience and clean, maintainable code.'
+        },
+        worker2: {
+          name: 'Bob',
+          model: '',
+          role: 'Analyst',
+          specialization: 'Code Review & Optimization',
+          customInstructions: 'Analyze code quality, performance, and suggest improvements.'
+        }
+      },
+      
+      // Base actions
+      addMessage: (message) =>
+        set((state) => ({
+          messages: [...state.messages, message],
+          contextMemory: {
+            ...state.contextMemory,
+            shortTerm: [...state.contextMemory.shortTerm.slice(-20), message]
+          }
+        })),
+        
+      updateMessage: (id, updates) =>
+        set((state) => ({
+          messages: state.messages.map((msg) =>
+            msg.id === id ? { ...msg, ...updates } : msg
+          ),
+        })),
+        
+      setMessages: (messages) => set({ messages }),
+      
+      setControl: (control) =>
+        set((state) => ({
+          control: { ...state.control, ...control },
+        })),
+        
+      setConnectionStatus: (connectionStatus) => set({ connectionStatus }),
+      
+      setSettings: (settings) =>
+        set((state) => ({
+          settings: { ...state.settings, ...settings },
+        })),
+      
+      // Enhanced actions
+      setCodeContent: (content) => set({ codeContent: content }),
+      
+      setFileSystem: (files) => set({ fileSystem: files }),
+      
+      addFile: (file) =>
+        set((state) => {
+          const updateFileSystem = (nodes: FileSystemNode[]): FileSystemNode[] => {
+            return nodes.map(node => {
+              if (node.type === 'folder' && file.path.startsWith(node.path)) {
+                return {
+                  ...node,
+                  children: node.children ? [...node.children, file] : [file]
+                };
+              }
+              return node;
+            });
+          };
+          return { fileSystem: updateFileSystem(state.fileSystem) };
+        }),
+      
+      updateFile: (id, updates) =>
+        set((state) => {
+          const updateFileSystem = (nodes: FileSystemNode[]): FileSystemNode[] => {
+            return nodes.map(node => {
+              if (node.id === id) {
+                return { ...node, ...updates };
+              }
+              if (node.children) {
+                return { ...node, children: updateFileSystem(node.children) };
+              }
+              return node;
+            });
+          };
+          return { fileSystem: updateFileSystem(state.fileSystem) };
+        }),
+      
+      deleteFile: (id) =>
+        set((state) => {
+          const deleteFromFileSystem = (nodes: FileSystemNode[]): FileSystemNode[] => {
+            return nodes.filter(node => {
+              if (node.id === id) return false;
+              if (node.children) {
+                node.children = deleteFromFileSystem(node.children);
+              }
+              return true;
+            });
+          };
+          return { fileSystem: deleteFromFileSystem(state.fileSystem) };
+        }),
+      
+      addUploadedFile: (file) =>
+        set((state) => ({
+          uploadedFiles: [...state.uploadedFiles, file]
+        })),
+      
+      removeUploadedFile: (fileName) =>
+        set((state) => ({
+          uploadedFiles: state.uploadedFiles.filter(f => f.name !== fileName)
+        })),
+      
+      addToMemory: (type, content) =>
+        set((state) => ({
+          contextMemory: {
+            ...state.contextMemory,
+            [type]: [...state.contextMemory[type], content]
+          }
+        })),
+      
+      updateCollaborationFlow: (flow) => set({ collaborationFlow: flow }),
+      
+      updateAiWorker: (workerId, updates) =>
+        set((state) => ({
+          aiWorkers: {
+            ...state.aiWorkers,
+            [workerId]: { ...state.aiWorkers[workerId], ...updates }
+          }
+        }))
+    }),
+    {
+      name: 'collaboration-store',
+      partialize: (state) => ({
+        messages: state.messages,
+        settings: state.settings,
+        codeContent: state.codeContent,
+        fileSystem: state.fileSystem,
+        contextMemory: state.contextMemory,
+        aiWorkers: state.aiWorkers
+      }),
+    }
+  )
+);
