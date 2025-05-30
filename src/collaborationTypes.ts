@@ -20,12 +20,12 @@ export interface MemorySystemState {
 }
 
 export interface CollaborationControlState {
-  currentModel: string;
-  otherModel: string;
+  currentModel?: string;
+  otherModel?: string;
   isCollaborating: boolean;
   isPaused: boolean;
   currentPhase: 'idle' | 'processing' | 'awaitingInput' | 'reviewing' | 'completed' | 'error';
-  currentRole: 'worker' | 'reviewer';
+  currentRole?: 'worker' | 'reviewer';
   currentTurn: number;
   totalTurns: number;
 }
