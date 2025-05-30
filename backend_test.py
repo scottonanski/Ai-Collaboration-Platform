@@ -8,7 +8,7 @@ from datetime import datetime
 class AICollaborationPlatformAPITest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(AICollaborationPlatformAPITest, self).__init__(*args, **kwargs)
-        self.base_url = "http://localhost:8001"
+        self.base_url = "http://localhost:8002"
         self.api_prefix = "/api"
         
     def get_url(self, endpoint):
