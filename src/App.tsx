@@ -5,7 +5,7 @@ import ChatInterface from "./components/ChatInterface/ChatInterface.tsx";
 import ResizableDrawer from "./components/Drawers/ResizableDrawer.tsx";
 
 function App() {
-  const [showFullApp, setShowFullApp] = useState(false);
+  const [showFullApp, setShowFullApp] = useState(true); // Start with full app for testing code-to-file integration
   const previewDrawerId = "PreviewDrawer";
 
   if (showFullApp) {
