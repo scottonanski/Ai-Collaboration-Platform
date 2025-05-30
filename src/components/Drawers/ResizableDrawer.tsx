@@ -29,8 +29,8 @@ const MAIN_TABS = [
     icon: <Code size={16} strokeWidth="0.75" />,
   },
   {
-    id: 'files',
-    title: 'Media Files',
+    id: 'web',
+    title: 'Web Research',
     icon: <FileImage size={16} strokeWidth="0.75" />,
   },
   {
@@ -40,7 +40,7 @@ const MAIN_TABS = [
   },
   {
     id: 'analytics',
-    title: 'Collaboration Analytics',
+    title: 'Analytics',
     icon: <BarChart3 size={16} strokeWidth="0.75" />,
   },
 ];
