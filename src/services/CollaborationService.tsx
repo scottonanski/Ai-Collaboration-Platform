@@ -194,7 +194,7 @@ export class CollaborationService {
           );
 
           for await (const chunk of stream) {
-            if (this.abortController.signal.aborted) {
+            if (this.abortController && this.abortController.signal.aborted) {
               break;
             }
             accumulatedResponse += chunk;
