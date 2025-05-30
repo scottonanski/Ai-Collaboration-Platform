@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import DrawerHeader from './DrawerHeaders.tsx';
-import { Eye, Code, FileImage, Brain, BarChart3 } from 'lucide-react';
+import { Eye, Code, FileImage, Brain, BarChart3, Folder } from 'lucide-react';
 import LivePreview from './LivePreview';
 import CodeSubTabs from './CodeSubTabs';
 import WebBrowserPanel from '../Advanced/WebBrowserPanel';
 import AdvancedMemoryManager from '../Advanced/AdvancedMemoryManager';
 import CollaborationFlowChart from '../Advanced/CollaborationFlowChart';
 import MindMapVisualizer from '../Advanced/MindMapVisualizer';
+import FileTree, { FileTreeNodeData } from './FileTree.tsx';
 import { useCollaborationStore } from '../../store/collaborationStore';
 
 interface ResizableDrawerProps {
