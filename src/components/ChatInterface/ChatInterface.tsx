@@ -127,9 +127,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ folderDrawerId, previewDr
       storeActions,
       requestSummary,
       apiKey1,
-      apiKey2,
-      api1Provider as 'ollama' | 'openai',
-      api2Provider as 'ollama' | 'openai'
+      apiKey2
     );
 
     const now = Date.now();
