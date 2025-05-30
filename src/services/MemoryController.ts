@@ -2,8 +2,8 @@ import { CollaborationState, ChatMessage, MemoryChunk } from "../collaborationTy
 
 export class MemoryController {
   static getContext(state: CollaborationState, header: string): string {
-    const strategic = state.memory.strategicMemory
-      .map((c) => `## Summary\n${c.summary}`)
+    const strategic = (state.memory.strategicMemory || [])
+      .map((c: any) => `## Summary\n${c.summary || c.content || 'No summary'}`)
       .join("\n\n");
     const working = state.memory.workingMemory
       .slice(-5)
