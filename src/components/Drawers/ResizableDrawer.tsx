@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import DrawerHeader from './DrawerHeaders.tsx';
-import { Eye, Code, FileImage, Brain, BarChart3 } from 'lucide-react';
+import { Eye, Code, FileImage, Brain, BarChart3, Folder } from 'lucide-react';
 import LivePreview from './LivePreview';
 import CodeSubTabs from './CodeSubTabs';
 import WebBrowserPanel from '../Advanced/WebBrowserPanel';
 import AdvancedMemoryManager from '../Advanced/AdvancedMemoryManager';
 import CollaborationFlowChart from '../Advanced/CollaborationFlowChart';
 import MindMapVisualizer from '../Advanced/MindMapVisualizer';
+import FileTree, { FileTreeNodeData } from './FileTree.tsx';
 import { useCollaborationStore } from '../../store/collaborationStore';
 
 interface ResizableDrawerProps {
@@ -95,6 +96,13 @@ const ResizableDrawer: React.FC<ResizableDrawerProps> = ({
   const contextMemory = useCollaborationStore((state) => state.contextMemory);
   const messages = useCollaborationStore((state) => state.messages);
   const addUploadedFile = useCollaborationStore((state) => state.addUploadedFile);
+  const fileSystem = useCollaborationStore((state) => state.fileSystem);
+
+  const handleFileSelect = (node: FileTreeNodeData) => {
+    console.log('File selected:', node);
+    // Here you could open the file in the code editor
+    // or trigger other actions based on the file type
+  };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -252,35 +260,54 @@ const ResizableDrawer: React.FC<ResizableDrawerProps> = ({
               title="Preview & Tools"
             />
 
-            {/* Main Tabs Navigation */}
-            <nav className="flex-shrink-0 border-b border-zinc-600">
-              <div role="tablist" className="flex overflow-x-auto">
-                {MAIN_TABS.map((tab) => {
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={isActive}
-                      className={`flex items-center gap-2 px-4 py-3 text-sm border-b-2 transition-colors whitespace-nowrap ${
-                        isActive
-                          ? 'border-primary text-primary bg-zinc-700'
-                          : 'border-transparent text-zinc-400 hover:text-white hover:bg-zinc-700'
-                      }`}
-                      onClick={() => setActiveTab(tab.id)}
-                    >
-                      {tab.icon}
-                      <span>{tab.title}</span>
-                    </button>
-                  );
-                })}
+            {/* Split Layout: File Tree + Tabs */}
+            <div className="flex flex-row flex-grow overflow-hidden">
+              {/* File Tree Column */}
+              <div className="w-80 flex-shrink-0 border-r border-zinc-600 bg-zinc-800 flex flex-col">
+                <div className="p-4 flex-shrink-0">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Folder size={16} color='white' strokeWidth="0.75"/>
+                    <h3 className="text-sm font-medium text-zinc-200">Project Files</h3>
+                  </div>
+                </div>
+                <div className="flex-grow overflow-y-auto">
+                  <FileTree nodes={fileSystem} onFileSelect={handleFileSelect} />
+                </div>
               </div>
-            </nav>
 
-            {/* Tab Content */}
-            <div className="flex-grow overflow-hidden">
-              {renderTabContent()}
+              {/* Main Content Column */}
+              <div className="flex-grow flex flex-col overflow-hidden">
+                {/* Main Tabs Navigation */}
+                <nav className="flex-shrink-0 border-b border-zinc-600">
+                  <div role="tablist" className="flex overflow-x-auto">
+                    {MAIN_TABS.map((tab) => {
+                      const isActive = activeTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={isActive}
+                          className={`flex items-center gap-2 px-4 py-3 text-sm border-b-2 transition-colors whitespace-nowrap ${
+                            isActive
+                              ? 'border-primary text-primary bg-zinc-700'
+                              : 'border-transparent text-zinc-400 hover:text-white hover:bg-zinc-700'
+                          }`}
+                          onClick={() => setActiveTab(tab.id)}
+                        >
+                          {tab.icon}
+                          <span>{tab.title}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </nav>
+
+                {/* Tab Content */}
+                <div className="flex-grow overflow-hidden">
+                  {renderTabContent()}
+                </div>
+              </div>
             </div>
           </section>
         </nav>
