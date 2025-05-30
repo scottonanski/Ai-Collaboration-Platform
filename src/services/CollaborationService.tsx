@@ -213,7 +213,7 @@ export class CollaborationService {
           this.abortController = null;
         }
 
-        if (streamError && this.abortController?.signal.aborted) {
+        if (streamError && this.abortController?.signal?.aborted) {
              // Loop will check shouldPause or isCollaborating at the top.
         } else if (streamError) {
             this.actions.setControl({ isCollaborating: false, currentPhase: 'error' });
