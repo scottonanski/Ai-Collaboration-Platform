@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useCollaborationStore } from '../../store/collaborationStore';
-import { ChatMessage as ChatMessageData, CollaborationState, CollaborationServiceActions } from '../../collaborationTypes'; // Renamed ChatMessage type
+import { ChatMessage as ChatMessageData, CollaborationState, CollaborationServiceActions } from '../../collaborationTypes';
 import { CollaborationService } from '../../services/CollaborationService';
-import ChatMessageComponent from './ChatMessage'; // This is the memoized component
-import { checkOllamaConnection, fetchOllamaModels } from '../../services/ollamaServices';
+import ChatMessageComponent from './ChatMessage';
+import { OPENAI_MODELS, getOpenAIApiKeys } from '../../services/openaiService';
 import SettingsDrawer from '../Drawers/SettingsDrawer';
 import CollaborationSettings from '../Drawers/CollaborationSettings';
 import { Settings, Folder, Eye, SendHorizontal, Pause, Play, Trash2, Zap, Brain, Sparkles, Upload } from 'lucide-react';
