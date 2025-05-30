@@ -84,6 +84,9 @@ export const useCollaborationStore = create<CollaborationStore>()(
     (set, get) => ({
       // Base state
       messages: [],
+      memory: {
+        workingMemory: []
+      },
       control: {
         isCollaborating: false,
         isPaused: false,
