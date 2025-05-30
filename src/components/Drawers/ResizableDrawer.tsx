@@ -3,6 +3,9 @@ import DrawerHeader from './DrawerHeaders.tsx';
 import { Eye, Code, FileImage, Brain, BarChart3 } from 'lucide-react';
 import LivePreview from './LivePreview';
 import CodeSubTabs from './CodeSubTabs';
+import WebBrowserPanel from '../Advanced/WebBrowserPanel';
+import AdvancedMemoryManager from '../Advanced/AdvancedMemoryManager';
+import CollaborationFlowChart from '../Advanced/CollaborationFlowChart';
 import { useCollaborationStore } from '../../store/collaborationStore';
 
 interface ResizableDrawerProps {
