@@ -27,6 +27,32 @@ const SUB_TABS = [
   },
 ];
 
+// Helper function to get language from file extension
+const getLanguageFromExtension = (filename: string): string => {
+  const extension = filename.split('.').pop()?.toLowerCase();
+  switch (extension) {
+    case 'html':
+    case 'htm':
+      return 'html';
+    case 'css':
+      return 'css';
+    case 'js':
+    case 'jsx':
+      return 'javascript';
+    case 'ts':
+    case 'tsx':
+      return 'typescript';
+    case 'json':
+      return 'json';
+    case 'md':
+      return 'markdown';
+    case 'py':
+      return 'python';
+    default:
+      return 'plaintext';
+  }
+};
+
 const CodeSubTabs: React.FC = () => {
   const [activeTab, setActiveTab] = useState('html');
   const [htmlCode, setHtmlCode] = useState(`<!DOCTYPE html>
