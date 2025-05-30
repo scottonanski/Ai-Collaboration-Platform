@@ -186,9 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000);
 });`);
 
-  // Store codes in collaboration store for preview component
-  const setCodeContent = useCollaborationStore((state) => state.setCodeContent);
-  
+  // Store codes in collaboration store for preview component  
   useEffect(() => {
     if (setCodeContent) {
       setCodeContent({ html: htmlCode, css: cssCode, js: jsCode });
