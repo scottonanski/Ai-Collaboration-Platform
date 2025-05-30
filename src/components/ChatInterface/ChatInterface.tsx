@@ -407,10 +407,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ previewDrawerId }) => {
         
         <nav className="flex flex-row items-center justify-between w-full mt-1" role="navigation" id="ChatTextInputButtonContainer" aria-label="Chat Controls">
           <div className="flex flex-row gap-2" id="chat-settings-buttons">
-            <label htmlFor={folderDrawerId} className="btn btn-sm btn-ghost drawer-button tooltip tooltip-top" data-tip="📁 Project Files" aria-label="Open Folder Drawer">
-              <Folder size={16} />
-            </label>
-            
             <SettingsDrawer
               trigger={ 
                 <button type="button" className="btn btn-sm btn-ghost p-1 tooltip tooltip-top" data-tip="⚙️ Settings" aria-label="Open Settings Drawer">
