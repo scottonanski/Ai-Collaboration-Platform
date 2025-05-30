@@ -293,8 +293,9 @@ document.addEventListener('DOMContentLoaded', function() {
           aria-label="Code file types"
           className="flex w-full"
         >
+          {/* Default Code Tabs */}
           {SUB_TABS.map((tab) => {
-            const isActive = activeTab === tab.id;
+            const isActive = activeTab === tab.id && !activeFileId;
             const baseTabStyles = "tab h-auto py-2 px-4 flex items-center gap-1.5 transition-colors duration-150 ease-in-out";
             const activeTabStyles = isActive
               ? "tab-active bg-zinc-800 [--tab-border-color:theme(colors.base-300)] border-b-0 rounded-t-lg"
@@ -312,7 +313,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 aria-controls={`subtab-content-${tab.id}`}
                 id={`subtab-label-${tab.id}`}
                 className={`${baseTabStyles} ${activeTabStyles} ${inactiveTabStyles}`}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setActiveFile(''); // Clear active file when using default tabs
+                }}
                 data-element="sub-tab"
                 data-tab-id={tab.id}
               >
@@ -321,6 +325,41 @@ document.addEventListener('DOMContentLoaded', function() {
               </button>
             );
           })}
+
+          {/* Dynamic File Tabs */}
+          {openFiles.map((fileId) => {
+            const file = getFileById(fileId);
+            if (!file) return null;
+            
+            return (
+              <div
+                key={fileId}
+                className={`tab h-auto py-2 px-4 flex items-center gap-1.5 transition-colors duration-150 ease-in-out ${
+                  activeFileId === fileId
+                    ? 'tab-active bg-zinc-800 [--tab-border-color:theme(colors.base-300)] border-b-0 rounded-t-lg'
+                    : 'text-base-content/60 border-b [--tab-border-color:theme(colors.base-300)]'
+                }`}
+              >
+                <button
+                  onClick={() => setActiveFile(fileId)}
+                  className="flex items-center gap-1"
+                >
+                  <FileCode2 size={14} strokeWidth={'0.75'}/>
+                  {file.name}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeFile(fileId);
+                  }}
+                  className="ml-1 text-gray-500 hover:text-red-400"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            );
+          })}
+
           <div
             className="tab grow border-b [--tab-border-color:theme(colors.base-300)]"
             data-element="tab-border"
