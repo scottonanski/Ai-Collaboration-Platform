@@ -3,6 +3,105 @@ import { ChatMessage, CollaborationControlState, CollaborationTask, Collaboratio
 import { fetchOpenAIResponseStream, getOpenAIApiKeys } from "./openaiService";
 import { useCollaborationStore } from '../store/collaborationStore';
 
+// Helper function to process code from AI responses and create files
+async function processCodeFromResponse(response: string): Promise<void> {
+  const store = useCollaborationStore.getState();
+  
+  // Regular expressions to find code blocks
+  const codeBlockRegex = /```(\w+)?\n?([\s\S]*?)```/g;
+  let match;
+  
+  while ((match = codeBlockRegex.exec(response)) !== null) {
+    const language = match[1] || 'txt';
+    const code = match[2].trim();
+    
+    if (code.length > 20) { // Only create files for substantial code
+      // Generate filename based on language
+      const extension = getExtensionFromLanguage(language);
+      const timestamp = Date.now();
+      const filename = `ai_generated_${timestamp}.${extension}`;
+      
+      // Create file object
+      const newFile = {
+        id: nanoid(),
+        name: filename,
+        type: 'file' as const,
+        content: code,
+        size: code.length,
+        lastModified: new Date().toISOString(),
+        children: undefined
+      };
+      
+      // Add to file system
+      store.addFile(newFile);
+      
+      // Open the file in the code editor
+      store.openFile(newFile.id);
+    }
+  }
+  
+  // Also look for specific file creation patterns
+  const fileCreationRegex = /(?:create|save|write)\s+(?:a\s+)?(?:file|code|script)\s+(?:called|named|as)\s+["`']?([^"`'\s]+)["`']?/gi;
+  let fileMatch;
+  
+  while ((fileMatch = fileCreationRegex.exec(response)) !== null) {
+    const filename = fileMatch[1];
+    
+    // Look for code that might belong to this file
+    const afterMatch = response.substring(fileMatch.index + fileMatch[0].length);
+    const nextCodeBlock = afterMatch.match(/```(\w+)?\n?([\s\S]*?)```/);
+    
+    if (nextCodeBlock) {
+      const code = nextCodeBlock[2].trim();
+      if (code.length > 10) {
+        const newFile = {
+          id: nanoid(),
+          name: filename,
+          type: 'file' as const,
+          content: code,
+          size: code.length,
+          lastModified: new Date().toISOString(),
+          children: undefined
+        };
+        
+        store.addFile(newFile);
+        store.openFile(newFile.id);
+      }
+    }
+  }
+}
+
+// Helper function to get file extension from language
+function getExtensionFromLanguage(language: string): string {
+  switch (language.toLowerCase()) {
+    case 'html':
+      return 'html';
+    case 'css':
+      return 'css';
+    case 'javascript':
+    case 'js':
+      return 'js';
+    case 'typescript':
+    case 'ts':
+      return 'ts';
+    case 'python':
+    case 'py':
+      return 'py';
+    case 'json':
+      return 'json';
+    case 'markdown':
+    case 'md':
+      return 'md';
+    case 'yaml':
+    case 'yml':
+      return 'yml';
+    case 'xml':
+      return 'xml';
+    default:
+      return 'txt';
+  }
+}
+
 // Simple throttle utility function
 function throttle(func: (messageId: string, content: string, streaming: boolean) => void, delay: number) {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
