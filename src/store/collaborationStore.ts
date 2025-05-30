@@ -178,14 +178,18 @@ export const useCollaborationStore = create<CollaborationStore>()(
           ),
         })),
         
-      setMessages: (messages) => set({ messages }),
+      setMessages: (messages) => {
+        set({ messages });
+      },
       
       setControl: (control) =>
         set((state) => ({
           control: { ...state.control, ...control },
         })),
         
-      setConnectionStatus: (connectionStatus) => set({ connectionStatus }),
+      setConnectionStatus: (connectionStatus) => {
+        set({ connectionStatus });
+      },
       
       setSettings: (settings) =>
         set((state) => ({
