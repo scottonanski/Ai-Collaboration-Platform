@@ -1,5 +1,5 @@
 import React from 'react';
-import { StrategicMemoryChunk } from '../../services/CollaborationService';
+import { StrategicMemoryChunk } from '../../services/StrategicMemoryChunk';
 
 interface StrategicMemoryChunkProps {
   chunk: StrategicMemoryChunk;
