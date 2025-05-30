@@ -416,7 +416,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <div className="h-full w-full">
                 <MockupCode
                   code={getCurrentCode()}
-                  language={tab.id === 'css' ? 'css' : tab.id === 'js' ? 'javascript' : 'html'}
+                  language={getCurrentLanguage()}
                   onChange={handleCodeChange}
                   readOnly={false}
                   height="100%"
