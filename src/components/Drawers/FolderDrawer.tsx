@@ -20,8 +20,6 @@ const FolderDrawer: React.FC<FolderDrawerProps> = ({
   style,
   zIndex = 100,
 }) => {
-  const fileSystem = useCollaborationStore((state) => state.fileSystem);
-  
   const handleFileSelect = (node: FileTreeNodeData) => {
     console.log('File selected:', node);
     // Here you could open the file in the code editor
@@ -63,7 +61,7 @@ const FolderDrawer: React.FC<FolderDrawerProps> = ({
           </div>
 
           <div className="flex-grow overflow-y-auto">
-            <FileTree nodes={fileSystem} onFileSelect={handleFileSelect} />
+            <FileTree onFileSelect={handleFileSelect} />
           </div>
         </section>
       </nav>

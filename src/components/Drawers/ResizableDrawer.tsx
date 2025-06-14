@@ -96,7 +96,6 @@ const ResizableDrawer: React.FC<ResizableDrawerProps> = ({
   const contextMemory = useCollaborationStore((state) => state.contextMemory);
   const messages = useCollaborationStore((state) => state.messages);
   const addUploadedFile = useCollaborationStore((state) => state.addUploadedFile);
-  const fileSystem = useCollaborationStore((state) => state.fileSystem);
 
   const handleFileSelect = (node: FileTreeNodeData) => {
     console.log('File selected:', node);
@@ -271,7 +270,7 @@ const ResizableDrawer: React.FC<ResizableDrawerProps> = ({
                   </div>
                 </div>
                 <div className="flex-grow overflow-y-auto">
-                  <FileTree nodes={fileSystem} onFileSelect={handleFileSelect} />
+                  <FileTree onFileSelect={handleFileSelect} />
                 </div>
               </div>
 

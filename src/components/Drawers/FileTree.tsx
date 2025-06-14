@@ -19,7 +19,6 @@ interface FileTreeNodeProps {
 }
 
 interface FileTreeProps {
-  nodes: FileTreeNodeData[];
   onFileSelect?: (node: FileTreeNodeData) => void;
 }
 
@@ -28,7 +27,9 @@ const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, level, onFileSelect }
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(node.name);
   
-  const { updateFile, deleteFile, addFile } = useCollaborationStore();
+  const updateFile = useCollaborationStore((s) => s.updateFile);
+  const deleteFile = useCollaborationStore((s) => s.deleteFile);
+  const addFile = useCollaborationStore((s) => s.addFile);
 
   const paddingLeft = level * 16;
   const isFolder = node.type === 'folder';
@@ -227,8 +228,9 @@ const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, level, onFileSelect }
   );
 };
 
-const FileTree: React.FC<FileTreeProps> = ({ nodes, onFileSelect }) => {
-  const { addFile } = useCollaborationStore();
+const FileTree: React.FC<FileTreeProps> = ({ onFileSelect }) => {
+  const fileSystem = useCollaborationStore((s) => s.fileSystem);
+  const addFile = useCollaborationStore((s) => s.addFile);
 
   const handleCreateNew = (type: 'file' | 'folder') => {
     const name = prompt(`Enter ${type} name:`);
@@ -270,14 +272,14 @@ const FileTree: React.FC<FileTreeProps> = ({ nodes, onFileSelect }) => {
 
       {/* File Tree Content */}
       <div className="flex-grow overflow-y-auto" role="tree">
-        {nodes.length === 0 ? (
+        {fileSystem.length === 0 ? (
           <div className="p-4 text-center text-zinc-400 text-sm">
             <File size={32} className="mx-auto mb-2 opacity-50" />
             <p>No files yet</p>
             <p className="text-xs">Create your first file or folder</p>
           </div>
         ) : (
-          nodes.map((node) => (
+          fileSystem.map((node) => (
             <FileTreeNode
               key={node.id}
               node={node}
