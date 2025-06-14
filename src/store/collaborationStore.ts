@@ -207,18 +207,34 @@ export const useCollaborationStore = create<CollaborationStore>()(
       
       addFile: (file) =>
         set((state) => {
+          console.log('=== addFile called ===');
+          console.log('Adding file:', file);
+          console.log('Current file system:', state.fileSystem);
+
           const updateFileSystem = (nodes: FileSystemNode[]): FileSystemNode[] => {
             return nodes.map(node => {
               if (node.type === 'folder' && file.path.startsWith(node.path)) {
-                return {
+                console.log(`Found parent folder: ${node.path}`);
+                const updatedNode = {
                   ...node,
-                  children: node.children ? [...node.children, file] : [file]
+                  children: [...(node.children || []), file]
                 };
+                console.log(`Updated folder ${node.path} with new file ${file.name}`);
+                return updatedNode;
+              } else if (node.children) {
+                // Recursively update child nodes
+                const updatedChildren = updateFileSystem(node.children);
+                if (updatedChildren !== node.children) {
+                  return { ...node, children: updatedChildren };
+                }
               }
               return node;
             });
           };
-          return { fileSystem: updateFileSystem(state.fileSystem) };
+          
+          const updatedFileSystem = updateFileSystem(state.fileSystem);
+          console.log('Updated file system:', updatedFileSystem);
+          return { fileSystem: updatedFileSystem };
         }),
       
       updateFile: (id, updates) =>

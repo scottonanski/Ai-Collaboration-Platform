@@ -60,6 +60,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ previewDrawerId }) => {
       updateMessage: useCollaborationStore.getState().updateMessage,
       setControl: useCollaborationStore.getState().setControl,
       setConnectionStatus: useCollaborationStore.getState().setConnectionStatus,
+      addFile: useCollaborationStore.getState().addFile,
+      setCodeContent: useCollaborationStore.getState().setCodeContent,
     };
     collaborationServiceRef.current = new CollaborationService(
       storeActions, 
@@ -98,6 +100,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ previewDrawerId }) => {
     const storeActions: CollaborationServiceActions = {
       addMessage: useCollaborationStore.getState().addMessage,
       updateMessage: useCollaborationStore.getState().updateMessage,
+      addFile: useCollaborationStore.getState().addFile,
+      setCodeContent: useCollaborationStore.getState().setCodeContent,
       setControl: useCollaborationStore.getState().setControl,
       setConnectionStatus: useCollaborationStore.getState().setConnectionStatus,
     };
@@ -121,6 +125,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ previewDrawerId }) => {
       updateMessage: useCollaborationStore.getState().updateMessage,
       setControl: useCollaborationStore.getState().setControl,
       setConnectionStatus: useCollaborationStore.getState().setConnectionStatus,
+      addFile: useCollaborationStore.getState().addFile,
+      setCodeContent: useCollaborationStore.getState().setCodeContent,
     };
     
     // Ensure service has latest configs for this submission

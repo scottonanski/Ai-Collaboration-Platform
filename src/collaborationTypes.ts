@@ -1,5 +1,15 @@
 // collaborationTypes.ts
 
+export interface FileSystemNode {
+  id: string;
+  name: string;
+  type: 'file' | 'folder';
+  content?: string;
+  children?: FileSystemNode[];
+  path: string;
+  fileType?: string;
+}
+
 export interface ChatMessage {
   id: string; // Changed from number to string
   senderName: string;
@@ -66,4 +76,8 @@ export interface CollaborationServiceActions {
   setControl: (control: Partial<CollaborationControlState>) => void;
   setConnectionStatus: (status: 'connected' | 'disconnected') => void;
   // setMessages: (messages: ChatMessage[]) => void; // Usually not needed directly by service
+  
+  // File system actions
+  addFile: (file: FileSystemNode) => void;
+  setCodeContent: (content: { html: string; css: string; js: string }) => void;
 }

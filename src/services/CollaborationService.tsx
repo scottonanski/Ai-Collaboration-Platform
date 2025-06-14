@@ -1,7 +1,8 @@
 import { nanoid } from "nanoid";
-import { ChatMessage, CollaborationControlState, CollaborationTask, CollaborationServiceActions } from "../collaborationTypes";
+import { ChatMessage, CollaborationControlState, CollaborationTask, CollaborationServiceActions, MessagePart } from "../collaborationTypes";
 import { fetchOpenAIResponseStream, getOpenAIApiKeys } from "./openaiService";
 import { useCollaborationStore } from '../store/collaborationStore';
+import { parseBotMessage } from '../utils/messageParser';
 
 // Simple throttle utility function
 function throttle(func: (messageId: string, content: string, streaming: boolean) => void, delay: number) {
@@ -116,6 +117,90 @@ export class CollaborationService {
     this.actions.setControl({ isCollaborating: false, isPaused: false, currentPhase: 'idle', currentTurn: 0 });
   }
 
+  private processCodeFromResponse(response: string) {
+    console.log('=== processCodeFromResponse called ===');
+    console.log('Raw response:', response);
+    
+    const parts = parseBotMessage(response);
+    console.log('Parsed parts:', parts);
+    
+    const codeParts = parts.filter((part): part is Extract<MessagePart, { type: 'code' }> => part.type === 'code');
+    console.log('Code parts found:', codeParts.length);
+
+    codeParts.forEach((part, index) => {
+      if (!part.code) return;
+
+      // Determine file type and extension based on language hint or content
+      let fileExt = 'js';
+      let fileType = 'javascript';
+      const language = part.language?.toLowerCase() || '';
+      
+      if (language) {
+        // Map common language hints to file extensions
+        const extensionMap: Record<string, { ext: string, type: string }> = {
+          'javascript': { ext: 'js', type: 'javascript' },
+          'js': { ext: 'js', type: 'javascript' },
+          'typescript': { ext: 'ts', type: 'typescript' },
+          'ts': { ext: 'ts', type: 'typescript' },
+          'jsx': { ext: 'jsx', type: 'javascript' },
+          'tsx': { ext: 'tsx', type: 'typescript' },
+          'html': { ext: 'html', type: 'html' },
+          'css': { ext: 'css', type: 'css' },
+          'json': { ext: 'json', type: 'json' },
+          'python': { ext: 'py', type: 'python' },
+          'py': { ext: 'py', type: 'python' },
+        };
+
+        const mapping = extensionMap[language];
+        if (mapping) {
+          fileExt = mapping.ext;
+          fileType = mapping.type;
+        }
+      }
+
+      // Generate a meaningful filename
+      const timestamp = new Date().getTime();
+      const fileName = `code-${timestamp}-${index + 1}.${fileExt}`;
+      const filePath = `/src/${fileName}`;
+
+      // Create file object
+      const file = {
+        id: `file-${timestamp}-${index}`,
+        name: fileName,
+        type: 'file' as const,
+        path: filePath,
+        content: part.code,
+        fileType,
+      };
+
+      // Add file to the file system
+      console.log('Adding file to file system:', file);
+      try {
+        this.actions.addFile(file);
+        console.log('File added successfully');
+      } catch (error) {
+        console.error('Error adding file:', error);
+      }
+
+      // Update code content for live preview if it's a web file
+      if (['html', 'css', 'javascript', 'typescript'].includes(fileType)) {
+        console.log('Updating code content for file type:', fileType);
+        const currentContent = useCollaborationStore.getState().codeContent;
+        const newContent = { ...currentContent };
+        
+        if (fileType === 'html') {
+          newContent.html = part.code;
+        } else if (fileType === 'css') {
+          newContent.css = part.code;
+        } else if (['javascript', 'typescript'].includes(fileType)) {
+          newContent.js = part.code;
+        }
+        
+        this.actions.setCodeContent(newContent);
+      }
+    });
+  }
+
   private async runCollaborationLoop(task: CollaborationTask, initialPrompt?: string) {
     let currentTurn = useCollaborationStore.getState().control.currentTurn || 1;
     let firstIteration = true;
@@ -210,6 +295,10 @@ export class CollaborationService {
             message: accumulatedResponse, 
             streaming: false 
           });
+          
+          // Process code blocks from the AI response
+          this.processCodeFromResponse(accumulatedResponse);
+          
           this.abortController = null;
         }
 
