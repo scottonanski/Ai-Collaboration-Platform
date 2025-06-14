@@ -28,6 +28,7 @@
     "react-syntax-highlighter": "^15.6.1",
     "rehype-highlight": "^7.0.2",
     "remark-gfm": "^4.0.1",
+    "sonner": "^2.0.5",
     "tailwindcss": "^4.1.4",
     "tiktoken": "^1.0.20",
     "vite-plugin-wasm": "^3.4.1",

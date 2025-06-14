@@ -211,30 +211,89 @@ export const useCollaborationStore = create<CollaborationStore>()(
           console.log('Adding file:', file);
           console.log('Current file system:', state.fileSystem);
 
-          const updateFileSystem = (nodes: FileSystemNode[]): FileSystemNode[] => {
-            return nodes.map(node => {
-              if (node.type === 'folder' && file.path.startsWith(node.path)) {
-                console.log(`Found parent folder: ${node.path}`);
-                const updatedNode = {
-                  ...node,
-                  children: [...(node.children || []), file]
+          // If file system is empty, just add the file directly
+          if (state.fileSystem.length === 0) {
+            console.log('File system is empty, adding first file');
+            return { fileSystem: [file] };
+          }
+
+          // Create a deep copy of the file system to avoid mutating state directly
+          const newFileSystem = JSON.parse(JSON.stringify(state.fileSystem));
+          
+          // Helper function to find or create the parent directory
+          const ensureDirectoryExists = (path: string, currentNodes: FileSystemNode[]): void => {
+            const parts = path.split('/').filter(Boolean);
+            let currentPath = '';
+            let currentNodesRef = currentNodes;
+            
+            for (let i = 0; i < parts.length; i++) {
+              const part = parts[i];
+              currentPath += `/${part}`;
+              
+              let dir = currentNodesRef.find(n => n.type === 'folder' && n.name === part);
+              
+              if (!dir) {
+                console.log(`Creating directory: ${currentPath}`);
+                dir = {
+                  id: `dir-${Date.now()}-${i}`,
+                  name: part,
+                  type: 'folder',
+                  path: currentPath,
+                  children: []
                 };
-                console.log(`Updated folder ${node.path} with new file ${file.name}`);
-                return updatedNode;
-              } else if (node.children) {
-                // Recursively update child nodes
-                const updatedChildren = updateFileSystem(node.children);
-                if (updatedChildren !== node.children) {
-                  return { ...node, children: updatedChildren };
+                currentNodesRef.push(dir);
+              }
+              
+              if (dir.children) {
+                currentNodesRef = dir.children;
+              }
+            }
+          };
+
+          // Get the directory path from the file path
+          const dirPath = file.path.split('/').slice(0, -1).join('/') || '/';
+          console.log(`Ensuring directory exists: ${dirPath}`);
+          
+          // Ensure the directory structure exists
+          ensureDirectoryExists(dirPath, newFileSystem);
+          
+          // Find the parent directory and add the file
+          const addFileToParent = (nodes: FileSystemNode[], path: string): boolean => {
+            for (let i = 0; i < nodes.length; i++) {
+              const node = nodes[i];
+              if (node.type === 'folder' && node.path === path) {
+                if (!node.children) {
+                  node.children = [];
+                }
+                // Check if file already exists
+                const fileExists = node.children.some(child => child.path === file.path);
+                if (!fileExists) {
+                  node.children.push(file);
+                  console.log(`Added file ${file.path} to directory ${path}`);
+                  return true;
+                } else {
+                  console.log(`File ${file.path} already exists in directory ${path}`);
+                  return false;
                 }
               }
-              return node;
-            });
+              if (node.children) {
+                if (addFileToParent(node.children, path)) {
+                  return true;
+                }
+              }
+            }
+            return false;
           };
-          
-          const updatedFileSystem = updateFileSystem(state.fileSystem);
-          console.log('Updated file system:', updatedFileSystem);
-          return { fileSystem: updatedFileSystem };
+
+          // Add the file to the appropriate directory
+          if (!addFileToParent(newFileSystem, dirPath)) {
+            console.log('Parent directory not found, adding to root');
+            // If we couldn't find the parent directory, add to root
+            newFileSystem.push(file);
+          }
+
+          console.log('Updated file system:', newFileSystem);
+          return { fileSystem: newFileSystem };
         }),
       
       updateFile: (id, updates) =>
